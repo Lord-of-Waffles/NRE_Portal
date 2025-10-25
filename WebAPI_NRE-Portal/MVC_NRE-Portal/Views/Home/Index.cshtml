@@ -1,8 +1,30 @@
 ﻿@{
-    ViewData["Title"] = "Home Page";
+    ViewData["Title"] = "NRE - Home Page";
 }
 
-<div class="text-center">
-    <h1 class="display-4">Welcome</h1>
-    <p>Learn about <a href="https://learn.microsoft.com/aspnet/core">building Web apps with ASP.NET Core</a>.</p>
+<h1>Porta of the new renewable energy in Valais</h1>
+
+<div class="text-center" style=" display: flex; gap: 20px; margin-bottom: 40px;">
+    <!-- Line Chart 1 -->
+    <div style="flex: 1;">
+        <canvas id="lineChart1" width="400" height="200"></canvas>
+    </div>
+    <!-- Line Chart 2 -->
+    <div style="flex: 1;">
+        <canvas id="lineChart2" width="400" height="200"></canvas>
+    </div>
 </div>
+
+<!-- Pie Chart -->
+<div style="width: 50%; margin-bottom: 40px;">
+    <canvas id="pieChart" width="400" height="200"></canvas>
+</div>
+
+<!-- Navigation Button -->
+<div>
+    <a asp-page="/AnotherPage" class="btn btn-primary">NRE detail</a>
+</div>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+}

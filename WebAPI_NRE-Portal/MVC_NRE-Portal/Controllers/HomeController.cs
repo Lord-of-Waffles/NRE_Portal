@@ -1,20 +1,22 @@
 using Microsoft.AspNetCore.Mvc;
 using MVC_NRE_Portal.Models;
+using MVC_NRE_Portal.Services;
 using System.Diagnostics;
 
 namespace MVC_NRE_Portal.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ILogger<HomeController> _logger;
+        private IProductionServiceMVC _productionServiceMVC;
 
-        public HomeController(ILogger<HomeController> logger)
+        public HomeController(IProductionServiceMVC productionServiceMVC)
         {
-            _logger = logger;
+            _productionServiceMVC = productionServiceMVC;
         }
 
-        public IActionResult Index()
+        public async Task<IActionResult> Index()
         {
+            var yearKwProduction = await _productionServiceMVC.GetFakeYearData();
             return View();
         }
 

@@ -1,4 +1,6 @@
 
+using WebAPI_NRE_Portal.Services;
+
 namespace WebAPI_NRE_Portal
 {
     public class Program
@@ -13,6 +15,9 @@ namespace WebAPI_NRE_Portal
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
+
+            builder.Services.AddScoped<IProductionService, ProductionService>();
+
 
             var app = builder.Build();
 

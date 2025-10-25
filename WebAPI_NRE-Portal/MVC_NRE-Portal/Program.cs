@@ -1,3 +1,5 @@
+using MVC_NRE_Portal.Services;
+
 namespace MVC_NRE_Portal
 {
     public class Program
@@ -8,6 +10,8 @@ namespace MVC_NRE_Portal
 
             // Add services to the container.
             builder.Services.AddControllersWithViews();
+            builder.Services.AddHttpClient<IProductionServiceMVC, ProductionServiceMVC>();
+
 
             var app = builder.Build();
 

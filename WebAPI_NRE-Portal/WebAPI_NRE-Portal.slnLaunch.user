@@ -1,0 +1,15 @@
+[
+  {
+    "Name": "New Profile",
+    "Projects": [
+      {
+        "Path": "WebAPI_NRE-Portal\\WebAPI_NRE-Portal.csproj",
+        "Action": "Start"
+      },
+      {
+        "Path": "MVC_NRE-Portal\\MVC_NRE-Portal.csproj",
+        "Action": "Start"
+      }
+    ]
+  }
+]
