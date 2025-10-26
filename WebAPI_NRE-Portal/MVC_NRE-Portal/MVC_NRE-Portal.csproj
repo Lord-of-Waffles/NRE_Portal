@@ -7,4 +7,8 @@
     <RootNamespace>MVC_NRE_Portal</RootNamespace>
   </PropertyGroup>
 
+  <ItemGroup>
+    <PackageReference Include="Chart.js" Version="3.7.1" />
+  </ItemGroup>
+
 </Project>
