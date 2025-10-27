@@ -1,4 +1,7 @@
-﻿@{
+﻿@model List<ProductionDataDto>
+@using Newtonsoft.Json
+
+@{
     ViewData["Title"] = "NRE - Home Page";
 }
 
@@ -27,4 +30,8 @@
 
 @section Scripts {
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        // Convert C# data into JSON
+        const data = @Html.Raw(JSonConvert.SerializeObject(Model))
+    </script>
 }
