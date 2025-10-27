@@ -1,5 +1,5 @@
 ﻿@model List<ProductionDataDto>
-@using Newtonsoft.Json
+@using System.Text.Json
 
 @{
     ViewData["Title"] = "NRE - Home Page";
@@ -32,6 +32,27 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
         // Convert C# data into JSON
-        const data = @Html.Raw(JSonConvert.SerializeObject(Model))
+        const chartData = @Html.Raw(JsonSerializer.Serialize(Model))
+
+        // Extract labels and values
+        const labels = chartData.map(x => x.Year);
+        const values = chartData.map(x => x.ProductionKw);
+
+        // Chart
+        const ctx = document.getElementById('lineChart1');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets:[{
+                    label: 'Production (Kw)',
+                    data: values,
+                    backgroundColor: 'rgba(54, 162, 235, 0.5)',
+                    borderColor: 'rgb(54,162,235)',
+                    borderWidth: 1
+                }]
+            },
+           // options: { scales: {y: {beginAtZero: true}}}
+        })
     </script>
 }
