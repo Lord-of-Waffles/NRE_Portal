@@ -17,7 +17,7 @@ namespace MVC_NRE_Portal.Controllers
         public async Task<IActionResult> Index()
         {
             var yearKwProduction = await _productionServiceMVC.GetFakeYearData();
-            return View();
+            return View(yearKwProduction);
         }
 
         public IActionResult Privacy()
