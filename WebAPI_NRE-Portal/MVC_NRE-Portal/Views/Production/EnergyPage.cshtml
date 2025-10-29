@@ -1,0 +1,41 @@
+@model MVC_NRE_Portal.Models.ChartViewModel
+@{
+    ViewData["Title"] = Model.ChartTitle;
+}
+
+<h2 class="mt-3">@Model.ChartTitle</h2>
+
+<canvas id="@Model.ChartId" width="800" height="380"></canvas>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script>
+        (function(){
+            const ctx = document.getElementById('@Model.ChartId').getContext('2d');
+            new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Labels)),
+                    datasets: [{
+                        label: 'kWh',
+                        data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data)),
+                        backgroundColor: '@Model.BackgroundColor',
+                        borderColor: '@Model.BorderColor',
+                        borderWidth: 2,
+                        fill: true,
+                        tension: 0.25,
+                        pointRadius: 3
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    plugins: { legend: { display: true } },
+                    scales: {
+                        y: { title: { display: true, text: 'kWh' } },
+                        x: { title: { display: true, text: 'Year' } }
+                    }
+                }
+            });
+        })();
+    </script>
+}

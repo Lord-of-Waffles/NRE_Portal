@@ -1,7 +1,8 @@
-// Controllers/ProductionController.cs
 using Microsoft.AspNetCore.Mvc;
 using MVC_NRE_Portal.Models;
 using MVC_NRE_Portal.Services;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace MVC_NRE_Portal.Controllers
 {
@@ -14,32 +15,56 @@ namespace MVC_NRE_Portal.Controllers
             _productionService = productionService;
         }
 
+        // Dashboard: bar chart comparing total production by energy type (kWh)
         public async Task<IActionResult> Dashboard()
         {
-            var productionData = await _productionService.GetFakeYearData();
+            var data = await _productionService.GetFakeYearData();
 
-            // Group by energy type and sum production
-            var groupedData = productionData
-                .GroupBy(p => p.EnergyType)
-                .Select(g => new
-                {
-                    EnergyType = g.Key,
-                    TotalProduction = g.Sum(p => p.ProductionKw)
-                })
-                .OrderByDescending(x => x.TotalProduction)
+            var grouped = data
+                .GroupBy(d => d.EnergyType)
+                .Select(g => new { Type = g.Key, Total = g.Sum(x => x.ProductionKw) })
+                .OrderByDescending(x => x.Total)
                 .ToList();
 
-            // Create chart view model
-            var chartData = new ChartViewModel
+            var vm = new ChartViewModel
             {
-                Labels = groupedData.Select(d => d.EnergyType).ToList(),
-                Data = groupedData.Select(d => d.TotalProduction).ToList(),
-                ChartTitle = "Production by Energy Type",
+                Labels = grouped.Select(x => x.Type).ToList(),
+                Data = grouped.Select(x => x.Total).ToList(),
+                ChartTitle = "Total Production by Energy Type (kWh)",
                 BackgroundColor = "rgba(75, 192, 192, 0.6)",
-                BorderColor = "rgba(75, 192, 192, 1)"
+                BorderColor = "rgba(75, 192, 192, 1)",
+                ChartId = "energyDashboardChart"
             };
 
-            return View(chartData);
+            return View(vm);
+        }
+
+        // One page per energy type (kWh)
+        public async Task<IActionResult> PV() => await Energy("PV", "Photovoltaic (PV) Production (kWh)");
+        public async Task<IActionResult> MiniHydro() => await Energy("Mini-Hydraulic", "Mini-Hydraulic Production (kWh)");
+        public async Task<IActionResult> Wind() => await Energy("Windturbine", "Windturbine Production (kWh)");
+        public async Task<IActionResult> Biogas() => await Energy("Biogas", "Biogas Production (kWh)");
+
+        private async Task<IActionResult> Energy(string energyType, string title)
+        {
+            var data = await _productionService.GetFakeYearData();
+
+            var series = data
+                .Where(d => d.EnergyType == energyType)
+                .OrderBy(d => d.Year)
+                .ToList();
+
+            var vm = new ChartViewModel
+            {
+                Labels = series.Select(x => x.Year.ToString()).ToList(),
+                Data = series.Select(x => x.ProductionKw).ToList(),
+                ChartTitle = title,
+                BackgroundColor = "rgba(54, 162, 235, 0.5)",
+                BorderColor = "rgba(54, 162, 235, 1)",
+                ChartId = $"energyPageChart_{energyType.Replace("-", "").Replace(" ", "")}"
+            };
+
+            return View("EnergyPage", vm);
         }
     }
 }

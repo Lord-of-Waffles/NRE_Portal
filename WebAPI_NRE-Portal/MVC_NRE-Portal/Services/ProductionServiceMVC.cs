@@ -1,64 +1,144 @@
-﻿using MVC_NRE_Portal.Models;
-using System.Text.Json;
+﻿using System.Collections.Generic;
+using System.Linq;
+using System.Net.Http; // typed HttpClient
+using System.Threading.Tasks;
+using MVC_NRE_Portal.Models;
 
 namespace MVC_NRE_Portal.Services
 {
     public class ProductionServiceMVC : IProductionServiceMVC
     {
-        private readonly HttpClient _client;
-        private readonly string _baseUrl;
+        private readonly HttpClient _http;
 
-        public ProductionServiceMVC(HttpClient client, IConfiguration configuration)
+        public ProductionServiceMVC(HttpClient http)
         {
-            _client = client;
-            _baseUrl = configuration["WebAPI:BaseUrl"];
+            _http = http;
         }
 
-        public async Task<List<ProductionDataDto>> GetFakeYearData()
+        public Task<List<ProductionDataDto>> GetFakeYearData()
         {
-            // fake data for testing - Ben
-            await Task.Delay(100); // simulate API delay
-            
-            return new List<ProductionDataDto>
+            var rows = BuildYearlyProductionFromTable_KWh_2010_2018();
+            return Task.FromResult(rows);
+        }
+
+        /// <summary>
+        /// Exact figures from the provided Valais table (image) for years 2010–2018.
+        /// Table units are GWh → we store kWh (1 GWh = 1,000,000 kWh).
+        /// Energy types: PV, Mini-Hydraulic, Windturbine, Biogas.
+        /// </summary>
+        private static List<ProductionDataDto> BuildYearlyProductionFromTable_KWh_2010_2018()
+        {
+            const double KWH_PER_GWH = 1_000_000d;
+
+            var rows = new List<ProductionDataDto>();
+
+            // ----- Mini-Hydraulic -----
+            var miniHydroGWh = new (int Year, double GWh)[]
             {
-                // Solar power data
-                new ProductionDataDto { Id = 1, Year = 2024, ProductionKw = 15000, EnergyType = "Solar", Region = "North" },
-                new ProductionDataDto { Id = 2, Year = 2024, ProductionKw = 12000, EnergyType = "Solar", Region = "South" },
-                new ProductionDataDto { Id = 3, Year = 2024, ProductionKw = 18000, EnergyType = "Solar", Region = "East" },
-                new ProductionDataDto { Id = 4, Year = 2024, ProductionKw = 14000, EnergyType = "Solar", Region = "West" },
-                
-                // Hydro power data
-                new ProductionDataDto { Id = 5, Year = 2024, ProductionKw = 30000, EnergyType = "Hydro", Region = "North" },
-                new ProductionDataDto { Id = 6, Year = 2024, ProductionKw = 25000, EnergyType = "Hydro", Region = "South" },
-                new ProductionDataDto { Id = 7, Year = 2024, ProductionKw = 28000, EnergyType = "Hydro", Region = "East" },
-                new ProductionDataDto { Id = 8, Year = 2024, ProductionKw = 22000, EnergyType = "Hydro", Region = "West" },
-                
-                // Wind power data
-                new ProductionDataDto { Id = 9, Year = 2024, ProductionKw = 20000, EnergyType = "Wind", Region = "North" },
-                new ProductionDataDto { Id = 10, Year = 2024, ProductionKw = 17000, EnergyType = "Wind", Region = "South" },
-                new ProductionDataDto { Id = 11, Year = 2024, ProductionKw = 23000, EnergyType = "Wind", Region = "East" },
-                new ProductionDataDto { Id = 12, Year = 2024, ProductionKw = 19000, EnergyType = "Wind", Region = "West" },
-                
-                // Natural Gas data
-                new ProductionDataDto { Id = 17, Year = 2024, ProductionKw = 28000, EnergyType = "Natural Gas", Region = "North" },
-                new ProductionDataDto { Id = 18, Year = 2024, ProductionKw = 26000, EnergyType = "Natural Gas", Region = "South" },
-                new ProductionDataDto { Id = 19, Year = 2024, ProductionKw = 24000, EnergyType = "Natural Gas", Region = "East" },
-                new ProductionDataDto { Id = 20, Year = 2024, ProductionKw = 29000, EnergyType = "Natural Gas", Region = "West" }
+                (2010, 429),
+                (2011, 401),
+                (2012, 451),
+                (2013, 435),
+                (2014, 492),
+                (2015, 496),
+                (2016, 512),
+                (2017, 474),
+                (2018, 549)
             };
 
-            /* Hugo's old code:
-            
-            var response = await _client.GetAsync(_baseUrl + "/NRE_Portal");
-            response.EnsureSuccessStatusCode();
-            var responseBody = await response.Content.ReadAsStringAsync();
-            var options = new JsonSerializerOptions
+            // ----- Biogas -----
+            var biogasGWh = new (int Year, double GWh)[]
             {
-                PropertyNameCaseInsensitive = true,
+                (2010, 3),
+                (2011, 3),
+                (2012, 4),
+                (2013, 4),
+                (2014, 4),
+                (2015, 5),
+                (2016, 5),
+                (2017, 5),
+                (2018, 5)
             };
-            var data = JsonSerializer.Deserialize<List<ProductionDataDto>>(responseBody, options);
-            return data;
-            
-            */
-        }   
+
+            // ----- PV -----
+            var pvGWh = new (int Year, double GWh)[]
+            {
+                (2010, 1),
+                (2011, 1),
+                (2012, 6),
+                (2013, 22),
+                (2014, 41),
+                (2015, 60),
+                (2016, 67),
+                (2017, 74),
+                (2018, 84)
+            };
+
+            // ----- Windturbine -----
+            var windGWh = new (int Year, double GWh)[]
+            {
+                (2010, 10),
+                (2011, 9),
+                (2012, 14),
+                (2013, 19),
+                (2014, 18),
+                (2015, 18),
+                (2016, 18),
+                (2017, 24),
+                (2018, 22)
+            };
+
+            rows.AddRange(miniHydroGWh.Select(x => new ProductionDataDto
+            {
+                Year = x.Year,
+                ProductionKw = x.GWh * KWH_PER_GWH, // store as kWh
+                EnergyType = "Mini-Hydraulic",
+                Region = "VS"
+            }));
+
+            rows.AddRange(biogasGWh.Select(x => new ProductionDataDto
+            {
+                Year = x.Year,
+                ProductionKw = x.GWh * KWH_PER_GWH,
+                EnergyType = "Biogas",
+                Region = "VS"
+            }));
+
+            rows.AddRange(pvGWh.Select(x => new ProductionDataDto
+            {
+                Year = x.Year,
+                ProductionKw = x.GWh * KWH_PER_GWH,
+                EnergyType = "PV",
+                Region = "VS"
+            }));
+
+            rows.AddRange(windGWh.Select(x => new ProductionDataDto
+            {
+                Year = x.Year,
+                ProductionKw = x.GWh * KWH_PER_GWH,
+                EnergyType = "Windturbine",
+                Region = "VS"
+            }));
+
+            return rows
+                .OrderBy(r => r.Year)
+                .ThenBy(r => r.EnergyType)
+                .ToList();
+        }
+
+
+        /* Hugo's old code:
+
+        var response = await _client.GetAsync(_baseUrl + "/NRE_Portal");
+        response.EnsureSuccessStatusCode();
+        var responseBody = await response.Content.ReadAsStringAsync();
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true,
+        };
+        var data = JsonSerializer.Deserialize<List<ProductionDataDto>>(responseBody, options);
+        return data;
+
+        */
     }
 }
