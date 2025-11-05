@@ -1,0 +1,21 @@
+@model MVC_NRE_Portal.Models.PrivateInstallationViewModel
+
+@{
+    var step = Model.CurrentStep;
+    Func<int, string> tabClass = s => s == step ? "nav-link active" : "nav-link";
+}
+
+<ul class="nav nav-tabs mb-3">
+    <li class="nav-item">
+        <a class="@tabClass(1)" asp-controller="PrivateInstallation" asp-action="Index" asp-route-step="1">Location</a>
+    </li>
+    <li class="nav-item">
+        <a class="@tabClass(2)" asp-controller="PrivateInstallation" asp-action="Index" asp-route-step="2">Type of installation</a>
+    </li>
+    <li class="nav-item">
+        <a class="@tabClass(3)" asp-controller="PrivateInstallation" asp-action="Index" asp-route-step="3">Orientation</a>
+    </li>
+    <li class="nav-item">
+        <a class="@tabClass(4)" asp-controller="PrivateInstallation" asp-action="Index" asp-route-step="4">Area</a>
+    </li>
+</ul>
