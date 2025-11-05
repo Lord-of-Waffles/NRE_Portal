@@ -9,20 +9,20 @@
 
         // Identity / classification
         public string Name { get; set; } = "";
-        public string EnergyType { get; set; } = "";   // PV, Wind, Hydro, Biogas...
-        public string Region { get; set; } = "VS";     // Canton
+        public string EnergyType { get; set; } = "";   
+        public string Region { get; set; } = "VS";    
 
         // Technical
         public double InstalledCapacityKW { get; set; }      // Nominal capacity
-        public double? AnnualProductionKWh { get; set; }     // Observed or estimated annual production
+        public double? AnnualProductionKWh { get; set; }     
 
         // Geo
         public double? Latitude { get; set; }                // WGS84 latitude (decimal degrees)
         public double? Longitude { get; set; }               // WGS84 longitude (decimal degrees)
 
         // Original CRS (for Swiss datasets in LV95 EPSG:2056)
-        public double? SourceX { get; set; }                 // easting (meters), optional
-        public double? SourceY { get; set; }                 // northing (meters), optional
+        public double? SourceX { get; set; }                 // easting (meters)
+        public double? SourceY { get; set; }                 // northing (meters)
         public string? SourceCrs { get; set; }               // e.g., "EPSG:2056"
 
         // Timeline
