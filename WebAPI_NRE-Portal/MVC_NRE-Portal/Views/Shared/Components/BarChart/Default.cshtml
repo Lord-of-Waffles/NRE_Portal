@@ -1,0 +1,55 @@
+@* Views/Shared/Components/BarChart/Default.cshtml *@
+@model MVC_NRE_Portal.Models.ChartViewModel
+
+<div class="chart-container" style="position: relative; height:400px; margin: 20px 0;">
+    <canvas id="chart-@Model.ChartId"></canvas>
+</div>
+
+<!-- code for displaying the chart with node.js - ben -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    (function() {
+        const ctx = document.getElementById('chart-@Model.ChartId').getContext('2d');
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Labels)),
+                datasets: [{
+                    label: '@Model.ChartTitle',
+                    data: @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Data)),
+                    backgroundColor: '@Model.BackgroundColor',
+                    borderColor: '@Model.BorderColor',
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        ticks: {
+                            callback: function(value) {
+                                return value.toLocaleString() + ' kW';
+                            }
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        display: true,
+                        position: 'top'
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return context.dataset.label + ': ' + 
+                                       context.parsed.y.toLocaleString() + ' kW';
+                            }
+                        }
+                    }
+                }
+            }
+        });
+    })();
+</script>
