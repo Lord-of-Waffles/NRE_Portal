@@ -5,36 +5,58 @@ namespace MVC_NRE_Portal.Controllers
 {
     public class PrivateInstallationController : Controller
     {
-        // GET: /PrivateInstallation?step=1
+        // GET /PrivateInstallation?step=1
+        [HttpGet]
         public IActionResult Index(int step = 1)
         {
-            // clamp 1..4
-            if (step < 1) step = 1;
-            if (step > 4) step = 4;
-
-            var vm = new PrivateInstallationViewModel
-            {
-                CurrentStep = step
-            };
-
-            return View(vm);
+            var model = new PrivateInstallationViewModel { CurrentStep = Normalize(step) };
+            return View(model);
         }
 
-        // POST: just to demo navigation – we don’t persist yet
+        // POST /PrivateInstallation/Navigate
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public IActionResult Navigate(PrivateInstallationViewModel model, string direction)
         {
-            var step = model.CurrentStep;
+            // keep computed values in sync
+            model.EnsureArea();
 
-            if (direction == "next")
+            var step = Normalize(model.CurrentStep);
+
+            if (string.Equals(direction, "next", System.StringComparison.OrdinalIgnoreCase))
                 step++;
-            else if (direction == "prev")
+            else if (string.Equals(direction, "prev", System.StringComparison.OrdinalIgnoreCase))
                 step--;
 
-            if (step < 1) step = 1;
-            if (step > 4) step = 4;
-
-            return RedirectToAction("Index", new { step });
+            model.CurrentStep = Normalize(step);
+            ModelState.Clear(); // we show light validation per step; full validation can come when saving
+            return View("Index", model);
         }
+
+        // Optional: direct tab navigation /PrivateInstallation/Go?step=3
+        [HttpGet]
+        public IActionResult Go(int step, [FromQuery] PrivateInstallationViewModel carry)
+        {
+            carry.CurrentStep = Normalize(step);
+            carry.EnsureArea();
+            ModelState.Clear();
+            return View("Index", carry);
+        }
+
+        // Later, hook to API: POST to /api/privateinstallations
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public IActionResult Save(PrivateInstallationViewModel model)
+        {
+            model.EnsureArea();
+
+            // TODO: Call WebAPI when ready
+            // using HttpClient to POST model as JSON to /api/privateinstallations
+
+            TempData["Saved"] = "Private installation saved (stub).";
+            return RedirectToAction(nameof(Index), new { step = 1 });
+        }
+
+        private static int Normalize(int s) => s < 1 ? 1 : (s > 4 ? 4 : s);
     }
 }
