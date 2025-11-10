@@ -12,7 +12,7 @@
 <form asp-action="Navigate" method="post" class="card mt-2" id="pi-form">
     @Html.AntiForgeryToken()
     <div class="card-body">
-        <!-- Persist wizard state + previously entered values across steps -->
+        <!-- Hidden fields to persist data across steps -->
         <input type="hidden" asp-for="CurrentStep" />
         <input type="hidden" asp-for="Address" />
         <input type="hidden" asp-for="Canton" />
@@ -29,19 +29,16 @@
         <input type="hidden" asp-for="Azimuth" />
         <input type="hidden" asp-for="RoofSlope" />
 
-        @* STEP 1 *@
         @if (Model.CurrentStep == 1)
         {
             <h5>Location</h5>
             <p class="text-muted small">Later: geolocation, canton, municipality…</p>
         }
-        @* STEP 2 *@
         else if (Model.CurrentStep == 2)
         {
             <h5>Type of installation</h5>
             <p class="text-muted small">Later: Energy type, integration, PV cell type…</p>
         }
-        @* STEP 3: Orientation *@
         else if (Model.CurrentStep == 3)
         {
             <h5>Orientation</h5>
@@ -50,17 +47,14 @@
                     <label asp-for="Azimuth" class="form-label">Field orientation (azimuth) [&deg;]</label>
                     <input asp-for="Azimuth" class="form-control" id="Azimuth_input" />
                     <span class="form-text">-180 … +180 (0 ≈ south)</span>
-                    <span asp-validation-for="Azimuth" class="text-danger"></span>
                 </div>
                 <div class="col-md-4">
                     <label asp-for="RoofSlope" class="form-label">Slope of the roof [&deg;]</label>
                     <input asp-for="RoofSlope" class="form-control" id="RoofSlope_input" />
                     <span class="form-text">0 … 90</span>
-                    <span asp-validation-for="RoofSlope" class="text-danger"></span>
                 </div>
             </div>
         }
-        @* STEP 4: Area *@
         else if (Model.CurrentStep == 4)
         {
             <h5>Area</h5>
@@ -68,18 +62,15 @@
                 <div class="col-md-3">
                     <label asp-for="LengthM" class="form-label">Length [m]</label>
                     <input asp-for="LengthM" class="form-control" id="LengthM_input" />
-                    <span asp-validation-for="LengthM" class="text-danger"></span>
                 </div>
                 <div class="col-md-3">
                     <label asp-for="WidthM" class="form-label">Width [m]</label>
                     <input asp-for="WidthM" class="form-control" id="WidthM_input" />
-                    <span asp-validation-for="WidthM" class="text-danger"></span>
                 </div>
                 <div class="col-md-3">
                     <label asp-for="AreaM2" class="form-label">Area [m²]</label>
                     <input asp-for="AreaM2" class="form-control" id="AreaM2_input" />
                     <span class="form-text">Auto-computed if length &amp; width are set</span>
-                    <span asp-validation-for="AreaM2" class="text-danger"></span>
                 </div>
             </div>
         }
@@ -90,20 +81,33 @@
                 class="btn btn-outline-secondary" @(Model.CurrentStep == 1 ? "disabled" : "")>
             &larr; Previous
         </button>
-        <button type="submit" name="direction" value="next"
-                class="btn btn-primary ms-auto" @(Model.CurrentStep == 4 ? "disabled" : "")>
-            Next &rarr;
-        </button>
+
+        @if (Model.CurrentStep < 4)
+        {
+            <button type="submit" name="direction" value="next"
+                    class="btn btn-primary ms-auto">
+                Next &rarr;
+            </button>
+        }
+        else
+        {
+            <button class="btn btn-success ms-auto"
+                    formaction="@(Url.Action("Save", "PrivateInstallation"))"
+                    formmethod="post"
+                    id="saveBtn"
+                    disabled>
+                💾 Save installation
+            </button>
+        }
     </div>
 </form>
 
 @section Scripts {
-    <partial name="_ValidationScriptsPartial" />
     <script>
-        // Grab the visible inputs (the hidden ones have the same names)
-        const lengthInput = document.getElementById('LengthM_input');
-        const widthInput  = document.getElementById('WidthM_input');
-        const areaInput   = document.getElementById('AreaM2_input');
+        // --- helper utils ---
+        const get = id => document.getElementById(id);
+        const hidden = name => document.querySelector(`input[type="hidden"][name="${name}"]`);
+        const setHidden = (n, v) => { if (hidden(n)) hidden(n).value = v; };
 
         function parseNum(el) {
             if (!el) return NaN;
@@ -112,46 +116,60 @@
             return isNaN(n) ? NaN : n;
         }
 
+        // --- Area auto-compute ---
         function syncArea() {
-            if (!lengthInput || !widthInput || !areaInput) return;
-            const L = parseNum(lengthInput);
-            const W = parseNum(widthInput);
+            const L = parseNum(get('LengthM_input'));
+            const W = parseNum(get('WidthM_input'));
             if (!isNaN(L) && !isNaN(W)) {
                 const A = Math.round(L * W * 100) / 100;
-                areaInput.value = A;
-
-                // also push to the hidden field so server sees it
-                const hiddenArea = document.querySelector('input[type="hidden"][name="AreaM2"]');
-                if (hiddenArea) hiddenArea.value = A;
+                get('AreaM2_input').value = A;
+                setHidden('AreaM2', A);
             }
+            checkRequired();
         }
 
-        // compute immediately and on changes (Area step)
-        document.addEventListener('DOMContentLoaded', function () {
-            if (lengthInput) lengthInput.addEventListener('input', syncArea);
-            if (widthInput)  widthInput.addEventListener('input',  syncArea);
-            syncArea();
+        // --- Validate required fields before enabling Save ---
+        function checkRequired() {
+            const az = hidden('Azimuth')?.value || get('Azimuth_input')?.value || "";
+            const slope = hidden('RoofSlope')?.value || get('RoofSlope_input')?.value || "";
+            const area = hidden('AreaM2')?.value || get('AreaM2_input')?.value || "";
+            const areaNum = parseFloat(area.replace(',', '.'));
 
-            // Persist values when clicking tabs
-            document.querySelectorAll('.nav-tabs a').forEach(function (a) {
-                a.addEventListener('click', function (e) {
+            const valid = az !== "" && slope !== "" && !isNaN(areaNum) && areaNum > 0;
+            const btn = get('saveBtn');
+            if (btn) btn.disabled = !valid;
+        }
+
+        // --- Tab persistence ---
+        function persistTabs() {
+            document.querySelectorAll('.nav-tabs a').forEach(a => {
+                a.addEventListener('click', e => {
                     e.preventDefault();
-
-                    // keep Area in sync before we serialize
                     syncArea();
-
                     const form = document.getElementById('pi-form');
                     const fd = new FormData(form);
                     const url = new URL(a.href, window.location.origin);
-
-                    // add every form field (hidden + visible)
-                    for (const [k, v] of fd.entries()) {
-                        url.searchParams.set(k, v);
-                    }
-
+                    for (const [k, v] of fd.entries()) url.searchParams.set(k, v);
                     window.location.href = url.toString();
                 });
             });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            persistTabs();
+            ['LengthM_input', 'WidthM_input'].forEach(id => {
+                const el = get(id);
+                if (el) el.addEventListener('input', syncArea);
+            });
+            ['Azimuth_input', 'RoofSlope_input'].forEach(id => {
+                const el = get(id);
+                if (el) el.addEventListener('input', e => {
+                    setHidden(e.target.name, e.target.value);
+                    checkRequired();
+                });
+            });
+            syncArea();
+            checkRequired();
         });
     </script>
 }
