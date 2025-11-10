@@ -4,15 +4,14 @@
     ViewData["Title"] = "Entering my private installation";
 }
 
-<h1>Entering my private installation</h1>
-<p class="text-muted">Home &gt; Private installation</p>
+<h1 class="mb-2 fw-bold" style="letter-spacing:.2px">Entering my private installation</h1>
 
 @await Html.PartialAsync("_PrivateInstallationTabs", Model)
 
-<form asp-action="Navigate" method="post" class="card mt-2" id="pi-form">
+<form asp-action="Navigate" method="post" class="card card-elev mt-2" id="pi-form">
     @Html.AntiForgeryToken()
-    <div class="card-body">
-        <!-- Hidden fields to persist data across steps -->
+    <div class="card-body p-4">
+        <!-- Persist state across steps -->
         <input type="hidden" asp-for="CurrentStep" />
         <input type="hidden" asp-for="Address" />
         <input type="hidden" asp-for="Canton" />
@@ -29,36 +28,39 @@
         <input type="hidden" asp-for="Azimuth" />
         <input type="hidden" asp-for="RoofSlope" />
 
+        @* Step content *@
         @if (Model.CurrentStep == 1)
         {
-            <h5>Location</h5>
-            <p class="text-muted small">Later: geolocation, canton, municipality…</p>
+            <div class="alert alert-info soft mb-0">
+                Location will use a map picker & commune autocomplete later. Nothing to fill here yet — go to Orientation when you’re ready.
+            </div>
         }
         else if (Model.CurrentStep == 2)
         {
-            <h5>Type of installation</h5>
-            <p class="text-muted small">Later: Energy type, integration, PV cell type…</p>
+            <div class="alert alert-info soft mb-0">
+                “Type” is also informational for now. We’ll plug presets later (PV integration, cell type, capacity).
+            </div>
         }
         else if (Model.CurrentStep == 3)
         {
-            <h5>Orientation</h5>
-            <div class="row g-3">
+            <h5 class="section-title">Orientation</h5>
+            <div class="row g-4">
                 <div class="col-md-4">
-                    <label asp-for="Azimuth" class="form-label">Field orientation (azimuth) [&deg;]</label>
+                    <label asp-for="Azimuth" class="form-label">Azimuth [°]</label>
                     <input asp-for="Azimuth" class="form-control" id="Azimuth_input" />
-                    <span class="form-text">-180 … +180 (0 ≈ south)</span>
+                    <div class="form-hint">-180 … +180 (0 ≈ south)</div>
                 </div>
                 <div class="col-md-4">
-                    <label asp-for="RoofSlope" class="form-label">Slope of the roof [&deg;]</label>
+                    <label asp-for="RoofSlope" class="form-label">Roof slope [°]</label>
                     <input asp-for="RoofSlope" class="form-control" id="RoofSlope_input" />
-                    <span class="form-text">0 … 90</span>
+                    <div class="form-hint">0 … 90</div>
                 </div>
             </div>
         }
         else if (Model.CurrentStep == 4)
         {
-            <h5>Area</h5>
-            <div class="row g-3">
+            <h5 class="section-title">Area</h5>
+            <div class="row g-4">
                 <div class="col-md-3">
                     <label asp-for="LengthM" class="form-label">Length [m]</label>
                     <input asp-for="LengthM" class="form-control" id="LengthM_input" />
@@ -70,33 +72,31 @@
                 <div class="col-md-3">
                     <label asp-for="AreaM2" class="form-label">Area [m²]</label>
                     <input asp-for="AreaM2" class="form-control" id="AreaM2_input" />
-                    <span class="form-text">Auto-computed if length &amp; width are set</span>
+                    <div class="form-hint">Auto-computed when length & width are present</div>
                 </div>
             </div>
         }
     </div>
 
-    <div class="card-footer d-flex gap-2">
+    <div class="card-footer d-flex gap-2 align-items-center">
         <button type="submit" name="direction" value="prev"
-                class="btn btn-outline-secondary" @(Model.CurrentStep == 1 ? "disabled" : "")>
-            &larr; Previous
+                class="btn btn-outline-secondary btn-ghost" @(Model.CurrentStep == 1 ? "disabled" : "")>
+            ← Previous
         </button>
 
         @if (Model.CurrentStep < 4)
         {
-            <button type="submit" name="direction" value="next"
-                    class="btn btn-primary ms-auto">
-                Next &rarr;
+            <button type="submit" name="direction" value="next" class="btn btn-primary ms-auto">
+                Next →
             </button>
         }
         else
         {
-            <button class="btn btn-success ms-auto"
+            <button class="btn-cta ms-auto"
                     formaction="@(Url.Action("Save", "PrivateInstallation"))"
                     formmethod="post"
-                    id="saveBtn"
-                    disabled>
-                💾 Save installation
+                    id="saveBtn" disabled>
+                <span>💾</span> <span>Save installation</span>
             </button>
         }
     </div>
@@ -104,70 +104,62 @@
 
 @section Scripts {
     <script>
-        // --- helper utils ---
         const get = id => document.getElementById(id);
-        const hidden = name => document.querySelector(`input[type="hidden"][name="${name}"]`);
-        const setHidden = (n, v) => { if (hidden(n)) hidden(n).value = v; };
+        const hidden = n => document.querySelector('input[type="hidden"][name="'+n+'"]');
+        const setHidden = (n, v) => { const h = hidden(n); if (h) h.value = v; };
+        const num = el => { if (!el) return NaN; const v=(el.value||'').replace(',', '.'); const n=parseFloat(v); return isNaN(n)?NaN:n; }
 
-        function parseNum(el) {
-            if (!el) return NaN;
-            const v = (el.value || '').replace(',', '.');
-            const n = parseFloat(v);
-            return isNaN(n) ? NaN : n;
-        }
-
-        // --- Area auto-compute ---
-        function syncArea() {
-            const L = parseNum(get('LengthM_input'));
-            const W = parseNum(get('WidthM_input'));
-            if (!isNaN(L) && !isNaN(W)) {
-                const A = Math.round(L * W * 100) / 100;
-                get('AreaM2_input').value = A;
+        function syncArea(){
+            const L = num(get('LengthM_input'));
+            const W = num(get('WidthM_input'));
+            if(!isNaN(L) && !isNaN(W)){
+                const A = Math.round(L*W*100)/100;
+                if(get('AreaM2_input')) get('AreaM2_input').value = A;
                 setHidden('AreaM2', A);
             }
             checkRequired();
         }
 
-        // --- Validate required fields before enabling Save ---
-        function checkRequired() {
+        function checkRequired(){
             const az = hidden('Azimuth')?.value || get('Azimuth_input')?.value || "";
-            const slope = hidden('RoofSlope')?.value || get('RoofSlope_input')?.value || "";
-            const area = hidden('AreaM2')?.value || get('AreaM2_input')?.value || "";
-            const areaNum = parseFloat(area.replace(',', '.'));
-
-            const valid = az !== "" && slope !== "" && !isNaN(areaNum) && areaNum > 0;
-            const btn = get('saveBtn');
-            if (btn) btn.disabled = !valid;
+            const sl = hidden('RoofSlope')?.value || get('RoofSlope_input')?.value || "";
+            const ar = hidden('AreaM2')?.value || get('AreaM2_input')?.value || "";
+            const arN = parseFloat(String(ar).replace(',', '.'));
+            const ok = az !== "" && sl !== "" && !isNaN(arN) && arN > 0;
+            const btn = document.getElementById('saveBtn');
+            if(btn) btn.disabled = !ok;
         }
 
-        // --- Tab persistence ---
-        function persistTabs() {
-            document.querySelectorAll('.nav-tabs a').forEach(a => {
-                a.addEventListener('click', e => {
+        // Persist values when clicking stepper links
+        function wireStepperPersistence(){
+            document.querySelectorAll('.wizard a').forEach(a=>{
+                a.addEventListener('click', e=>{
                     e.preventDefault();
                     syncArea();
                     const form = document.getElementById('pi-form');
                     const fd = new FormData(form);
                     const url = new URL(a.href, window.location.origin);
-                    for (const [k, v] of fd.entries()) url.searchParams.set(k, v);
+                    for(const [k,v] of fd.entries()) url.searchParams.set(k,v);
                     window.location.href = url.toString();
                 });
             });
         }
 
-        document.addEventListener('DOMContentLoaded', () => {
-            persistTabs();
-            ['LengthM_input', 'WidthM_input'].forEach(id => {
-                const el = get(id);
-                if (el) el.addEventListener('input', syncArea);
-            });
-            ['Azimuth_input', 'RoofSlope_input'].forEach(id => {
-                const el = get(id);
-                if (el) el.addEventListener('input', e => {
-                    setHidden(e.target.name, e.target.value);
-                    checkRequired();
-                });
-            });
+        // Sync orientation to hidden when on step 3
+        function wireOrientation(){
+            const az = get('Azimuth_input');
+            const sl = get('RoofSlope_input');
+            if(az) az.addEventListener('input', e => { setHidden('Azimuth', e.target.value); checkRequired(); });
+            if(sl) sl.addEventListener('input', e => { setHidden('RoofSlope', e.target.value); checkRequired(); });
+        }
+
+        document.addEventListener('DOMContentLoaded', ()=>{
+            wireStepperPersistence();
+            wireOrientation();
+            if(get('LengthM_input')) get('LengthM_input').addEventListener('input', syncArea);
+            if(get('WidthM_input'))  get('WidthM_input').addEventListener('input',  syncArea);
+            if(get('AreaM2_input'))  get('AreaM2_input').addEventListener('input',  ()=>{ setHidden('AreaM2', get('AreaM2_input').value); checkRequired(); });
+
             syncArea();
             checkRequired();
         });
