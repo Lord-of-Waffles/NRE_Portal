@@ -1,0 +1,53 @@
+version: '3.8'
+
+services:
+  # Web API Backend
+  webapi:
+    build:
+      context: ./WebAPI_NRE-Portal
+      dockerfile: WebAPI_NRE-Portal/Dockerfile
+    container_name: nre-portal-api
+    ports:
+      - "5001:8080" 
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Data Source=/app/data/nreportal.db
+    volumes:
+      - nre-db-data:/app/data  # persistent volume for DB
+    networks:
+      - nre-network
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8080/swagger/index.html || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MVC Web Application
+  mvc:
+    build:
+      context: ./WebAPI_NRE-Portal
+      dockerfile: MVC_NRE-Portal/Dockerfile
+    container_name: nre-portal-mvc
+    ports:
+      - "5002:8080"  # Map host port 5002 to container port 8080
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ApiBaseUrl=http://webapi:8080
+    depends_on:
+      webapi:
+        condition: service_healthy
+    networks:
+      - nre-network
+
+# Named volume for persistent database storage
+volumes:
+  nre-db-data:
+    driver: local
+
+# Network for inter-container communication
+networks:
+  nre-network:
+    driver: bridge
