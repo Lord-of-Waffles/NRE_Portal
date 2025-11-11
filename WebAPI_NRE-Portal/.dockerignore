@@ -1,0 +1,42 @@
+# Build artifacts
+**/bin/
+**/obj/
+**/out/
+**/.vs/
+
+# Database files (will be created in container)
+**/*.db
+**/*.db-shm
+**/*.db-wal
+
+# User-specific files
+**/*.user
+**/*.suo
+**/.vscode/
+**/.idea/
+
+# NuGet packages
+**/packages/
+
+# Test results
+**/TestResults/
+
+# OS files
+**/.DS_Store
+**/Thumbs.db
+
+# Git
+**/.git/
+**/.gitignore
+**/.gitattributes
+
+# Documentation
+**/*.md
+!**/README.md
+
+# Logs
+**/logs/
+**/*.log
+
+# wwwroot node_modules if any
+**/node_modules/
