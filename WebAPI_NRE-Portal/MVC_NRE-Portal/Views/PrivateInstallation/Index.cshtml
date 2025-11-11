@@ -260,7 +260,6 @@ function togglePvCellSection(energyType){
     if(section){
         section.style.display = energyType === 'PV' ? 'block' : 'none';
         
-        // Clear PV cell selection if not PV
         if(energyType !== 'PV'){
             document.querySelectorAll('input[name="PvCellType"]').forEach(rb => {
                 rb.checked = false;
@@ -273,7 +272,7 @@ function togglePvCellSection(energyType){
 document.addEventListener('DOMContentLoaded', ()=>{
     wireStepperPersistence();
     wireOrientation();
-    wireRadioButtons(); // Add this line
+    wireRadioButtons();
     if(get('LengthM_input')) get('LengthM_input').addEventListener('input', syncArea);
     if(get('WidthM_input'))  get('WidthM_input').addEventListener('input',  syncArea);
     if(get('AreaM2_input'))  get('AreaM2_input').addEventListener('input',  ()=>{ setHidden('AreaM2', get('AreaM2_input').value); checkRequired(); });
