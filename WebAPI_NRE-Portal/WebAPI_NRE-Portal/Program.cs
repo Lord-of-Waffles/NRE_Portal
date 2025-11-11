@@ -1,4 +1,3 @@
-
 using WebAPI_NRE_Portal.Services;
 
 namespace WebAPI_NRE_Portal
@@ -18,6 +17,22 @@ namespace WebAPI_NRE_Portal
 
             builder.Services.AddScoped<IProductionService, ProductionService>();
 
+            // CORS configuration - MOVED HERE (before builder.Build())
+            const string CorsPolicy = "AllowLocal";
+            builder.Services.AddCors(o =>
+            {
+                o.AddPolicy(CorsPolicy, p =>
+                    p.WithOrigins(
+                        "https://localhost:7288",
+                        "http://localhost:5172",
+                        "http://localhost:5002",
+                        "https://localhost:5001",
+                        "http://mvc:8080",           // Docker container name
+                        "http://localhost:5002"       // Docker host access
+                    )
+                     .AllowAnyHeader()
+                     .AllowAnyMethod());
+            });
 
             var app = builder.Build();
 
@@ -29,9 +44,10 @@ namespace WebAPI_NRE_Portal
             }
 
             app.UseHttpsRedirection();
+            
+            app.UseCors(CorsPolicy); // Enable CORS middleware
 
             app.UseAuthorization();
-
 
             app.MapControllers();
 
