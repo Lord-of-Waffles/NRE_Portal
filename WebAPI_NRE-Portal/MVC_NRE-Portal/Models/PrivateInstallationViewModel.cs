@@ -25,9 +25,12 @@ namespace MVC_NRE_Portal.Models
 
         // --- Type of installation ---
         [Display(Name = "Energy type")]
+        [Required(ErrorMessage = "Please select an energy type.")]
         public string? EnergyType { get; set; } // PV, Wind, Mini-Hydraulic, Biogas
 
         [Display(Name = "Integration type")]
+        [Required(ErrorMessage = "Please select an integration type.")]
+
         public string? IntegrationType { get; set; } // Added / Integrated (PV)
 
         [Display(Name = "PV cell type")]
