@@ -37,9 +37,77 @@
         }
         else if (Model.CurrentStep == 2)
         {
-            <div class="alert alert-info soft mb-0">
-                “Type” is also informational for now. We’ll plug presets later (PV integration, cell type, capacity).
+        <div><h5 class="section-title">Select type of renewable energy</h5></div>
+        <div class="form-check">
+            <input class="form-check-input energy-type-radio" type="radio" 
+                name="EnergyType" value="Wind" id="type_wind"
+                @(Model.EnergyType == "Wind" ? "checked" : "") />
+            <label class="form-check-label" for="type_wind">
+                Wind Power
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input energy-type-radio" type="radio" 
+                name="EnergyType" value="PV" id="type_pv"
+                @(Model.EnergyType == "PV" ? "checked" : "") />
+            <label class="form-check-label" for="type_pv">
+                Solar Power (Photovoltaic)
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input energy-type-radio" type="radio" 
+                name="EnergyType" value="Biogas" id="type_biogas"
+                @(Model.EnergyType == "Biogas" ? "checked" : "") />
+            <label class="form-check-label" for="type_biogas">
+                Biogas
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input energy-type-radio" type="radio" 
+                name="EnergyType" value="Mini-Hydraulic" id="type_hydraulic"
+                @(Model.EnergyType == "Mini-Hydraulic" ? "checked" : "") />
+            <label class="form-check-label" for="type_hydraulic">
+                Microhydro
+            </label>
+        </div>
+
+        <div class="mt-4"><h5 class="section-title">Select type of integration</h5></div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" 
+                name="IntegrationType" value="Added" id="integration_added"
+                @(Model.IntegrationType == "Added" ? "checked" : "") />
+            <label class="form-check-label" for="integration_added">
+                Added
+            </label>
+        </div>
+        <div class="form-check">
+            <input class="form-check-input" type="radio" 
+                name="IntegrationType" value="Integrated" id="integration_integrated"
+                @(Model.IntegrationType == "Integrated" ? "checked" : "") />
+            <label class="form-check-label" for="integration_integrated">
+                Integrated
+            </label>
+        </div>
+
+        <div class="mt-4" id="pv-cell-section" style="display: @(Model.EnergyType == "PV" ? "block" : "none")">
+            <h5 class="section-title">Select type of PV cells</h5>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" 
+                    name="PvCellType" value="Polycrystalline" id="cell_poly"
+                    @(Model.PvCellType == "Polycrystalline" ? "checked" : "") />
+                <label class="form-check-label" for="cell_poly">
+                    Polycrystalline
+                </label>
             </div>
+            <div class="form-check">
+                <input class="form-check-input" type="radio" 
+                    name="PvCellType" value="Monocrystalline" id="cell_mono"
+                    @(Model.PvCellType == "Monocrystalline" ? "checked" : "") />
+                <label class="form-check-label" for="cell_mono">
+                    Monocrystalline
+                </label>
+            </div>
+        </div>
         }
         else if (Model.CurrentStep == 3)
         {
@@ -163,5 +231,54 @@
             syncArea();
             checkRequired();
         });
+function wireRadioButtons(){
+    // Energy Type with conditional display
+    document.querySelectorAll('.energy-type-radio').forEach(rb => {
+        rb.addEventListener('change', e => {
+            setHidden('EnergyType', e.target.value);
+            togglePvCellSection(e.target.value);
+        });
+    });
+    
+    // Integration Type
+    document.querySelectorAll('input[name="IntegrationType"]').forEach(rb => {
+        rb.addEventListener('change', e => {
+            setHidden('IntegrationType', e.target.value);
+        });
+    });
+    
+    // PV Cell Type
+    document.querySelectorAll('input[name="PvCellType"]').forEach(rb => {
+        rb.addEventListener('change', e => {
+            setHidden('PvCellType', e.target.value);
+        });
+    });
+}
+
+function togglePvCellSection(energyType){
+    const section = document.getElementById('pv-cell-section');
+    if(section){
+        section.style.display = energyType === 'PV' ? 'block' : 'none';
+        
+        if(energyType !== 'PV'){
+            document.querySelectorAll('input[name="PvCellType"]').forEach(rb => {
+                rb.checked = false;
+            });
+            setHidden('PvCellType', '');
+        }
+    }
+}
+
+document.addEventListener('DOMContentLoaded', ()=>{
+    wireStepperPersistence();
+    wireOrientation();
+    wireRadioButtons();
+    if(get('LengthM_input')) get('LengthM_input').addEventListener('input', syncArea);
+    if(get('WidthM_input'))  get('WidthM_input').addEventListener('input',  syncArea);
+    if(get('AreaM2_input'))  get('AreaM2_input').addEventListener('input',  ()=>{ setHidden('AreaM2', get('AreaM2_input').value); checkRequired(); });
+
+    syncArea();
+    checkRequired();
+});
     </script>
 }
