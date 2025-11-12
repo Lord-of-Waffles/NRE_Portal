@@ -35,7 +35,7 @@ namespace WebAPI_NRE_Portal
             });
 
             var app = builder.Build();
-
+            
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
             {
