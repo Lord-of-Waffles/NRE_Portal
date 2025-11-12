@@ -5,7 +5,7 @@ trigger:
       - ContaineriseApp
 
 pool:
-  vmImage: 'ben-run-pipeline'
+  name: 'ben-run-pipeline'
 
 variables:
   dockerRegistryServiceConnection: 'ACR-NREPortal'
