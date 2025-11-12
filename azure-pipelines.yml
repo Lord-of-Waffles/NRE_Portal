@@ -101,6 +101,7 @@ stages:
                   --registry-password $(acrPassword) `
                   --dns-name-label uas-nre-api `
                   --ports 8080 `
+                  --os-type Linux `
                   --cpu 1 --memory 1.5 `
                   --location $(location) `
                   --environment-variables `
@@ -145,6 +146,7 @@ stages:
                   --registry-password $(acrPassword) `
                   --dns-name-label uas-nre-mvc `
                   --ports 8080 `
+                  --os-type Linux `
                   --cpu 1 --memory 1.5 `
                   --location $(location) `
                   --environment-variables `
