@@ -80,6 +80,9 @@ stages:
               targetType: 'inline'
               errorActionPreference: 'continue'
               script: |
+                Write-Host "Getting ACR credentials..."
+                $acrPass = az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv
+                
                 Write-Host "Checking if API container exists..."
                 $exists = az container show --resource-group $(resourceGroup) --name nre-portal-api --query "id" -o tsv 2>&1
                 
@@ -98,7 +101,7 @@ stages:
                   --image $(containerRegistry)/nre-portal-api:latest `
                   --registry-login-server $(containerRegistry) `
                   --registry-username $(acrUsername) `
-                  --registry-password $(acrPassword) `
+                  --registry-password $acrPass `
                   --dns-name-label uas-nre-api `
                   --ports 8080 `
                   --os-type Linux `
@@ -121,6 +124,9 @@ stages:
               targetType: 'inline'
               errorActionPreference: 'continue'
               script: |
+                Write-Host "Getting ACR credentials..."
+                $acrPass = az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv
+                
                 Write-Host "Getting API URL..."
                 $apiUrl = az container show --resource-group $(resourceGroup) --name nre-portal-api --query ipAddress.fqdn -o tsv
                 Write-Host "API URL: http://$apiUrl:8080"
@@ -143,7 +149,7 @@ stages:
                   --image $(containerRegistry)/nre-portal-mvc:latest `
                   --registry-login-server $(containerRegistry) `
                   --registry-username $(acrUsername) `
-                  --registry-password $(acrPassword) `
+                  --registry-password $acrPass `
                   --dns-name-label uas-nre-mvc `
                   --ports 8080 `
                   --os-type Linux `
