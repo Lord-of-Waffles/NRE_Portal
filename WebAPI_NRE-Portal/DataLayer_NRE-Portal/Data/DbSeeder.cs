@@ -2,6 +2,7 @@
 using DataLayer_NRE_Portal.Geo;
 using DataLayer_NRE_Portal.Models;
 using System.Globalization;
+using System.Resources;
 
 namespace WebAPI_NRE_Portal.Data
 {
@@ -10,8 +11,9 @@ namespace WebAPI_NRE_Portal.Data
         public static void Seed(NrePortalContext ctx)
         {
             // Path to CSV files
-            string solutionRoot = Directory.GetParent(AppContext.BaseDirectory)!.Parent!.Parent!.Parent!.FullName;
-            string basePath = Path.Combine(solutionRoot, "DataLayer_NRE_Portal", "Resources");
+            string solutionRoot = Directory.GetParent(AppContext.BaseDirectory)!.Parent!.Parent!.Parent!.Parent!.FullName;
+            Console.WriteLine("Solution path " + solutionRoot);
+            string basePath = Path.Combine(solutionRoot, "DataLayer_NRE-Portal", "Resources");
 
           /*  // Production summaries
             if (!ctx.ProductionSummaries.Any())
@@ -95,7 +97,7 @@ namespace WebAPI_NRE_Portal.Data
             ctx.SaveChanges();
         }
 
-        private static int ImportProductionSummaries(NrePortalContext ctx, string path, char delimiter = ';')
+        private static int ImportProductionSummaries(NrePortalContext ctx, string path, char delimiter = ',')
         {
             if (!File.Exists(path))
             {
@@ -124,7 +126,7 @@ namespace WebAPI_NRE_Portal.Data
             return inserted;
         }
 
-        private static int ImportPublicInstallations(NrePortalContext ctx, string path, string cantonFilter = "VS", char delimiter = ';')
+        private static int ImportPublicInstallations(NrePortalContext ctx, string path, string cantonFilter = "VS", char delimiter = ',')
         {
             if (!File.Exists(path))
             {
@@ -146,11 +148,12 @@ namespace WebAPI_NRE_Portal.Data
                 { "subcat_10", "Waste" },
             };
 
+            Console.WriteLine("test");
+
             int inserted = 0;
-            foreach (var line in File.ReadLines(path).Skip(1))
+            foreach (var line in File.ReadLines(path))
             {
                 var parts = line.Split(delimiter);
-                if (parts.Length < 14) continue;
 
                 string canton = parts[4].Trim();
                 if (!string.Equals(canton, cantonFilter, StringComparison.OrdinalIgnoreCase))
@@ -168,7 +171,7 @@ namespace WebAPI_NRE_Portal.Data
                     lon = lo;
                 }
 
-                string CategoryId = parts.Length > 8 ? parts[8].Trim() : null;
+                string CategoryId = parts.Length > 8 ? parts[9].Trim() : null;
                 string CategoryName = (CategoryId != null && CategoryMap.ContainsKey(CategoryId))
                                           ? CategoryMap[CategoryId]
                                           : "Unknown";
@@ -186,7 +189,6 @@ namespace WebAPI_NRE_Portal.Data
                     Longitude = lon,
                     SourceRef = parts[0].Trim()
                 };
-
                 ctx.PublicInstallations.Add(plant);
                 inserted++;
             }
@@ -194,7 +196,7 @@ namespace WebAPI_NRE_Portal.Data
             return inserted;
         }
 
-        private static int ImportPrivateInstallations(NrePortalContext ctx, string path, char delimiter = ';')
+        private static int ImportPrivateInstallations(NrePortalContext ctx, string path, char delimiter = ',')
         {
             if (!File.Exists(path))
             {
@@ -216,8 +218,8 @@ namespace WebAPI_NRE_Portal.Data
                     InstalledCapacityKW = ParseDouble(parts[3]),
                     PvCellType = parts[4].Trim(),
                     IntegrationType = parts[5].Trim(),
-                    Azimuth = ParseNullable(parts[6]),
-                    RoofSlope = ParseNullable(parts[7]),
+                  //  Azimuth = ParseNullable(parts[6]),
+                   // RoofSlope = ParseNullable(parts[7]),
                     AreaM2 = ParseNullable(parts[8]),
                     EstimatedKWh = ParseNullable(parts[9]),
                     LocationText = parts.Length > 10 ? parts[10].Trim() : null,
