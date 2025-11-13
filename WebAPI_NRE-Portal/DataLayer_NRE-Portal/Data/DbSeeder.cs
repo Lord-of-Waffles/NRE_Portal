@@ -12,16 +12,15 @@ namespace WebAPI_NRE_Portal.Data
         {
             // Path to CSV files
             string solutionRoot = Directory.GetParent(AppContext.BaseDirectory)!.Parent!.Parent!.Parent!.Parent!.FullName;
-            Console.WriteLine("Solution path " + solutionRoot);
             string basePath = Path.Combine(solutionRoot, "DataLayer_NRE-Portal", "Resources");
 
-          /*  // Production summaries
+            // Production summaries
             if (!ctx.ProductionSummaries.Any())
             {
                 string file = Path.Combine(basePath, "ProductionSummaries.csv");
                 int count = ImportProductionSummaries(ctx, file);
                 Console.WriteLine($"✅ {count} ProductionSummaries importées.");
-            }   */
+            }   
 
             // Public installations
             if (!ctx.PublicInstallations.Any())
@@ -30,16 +29,6 @@ namespace WebAPI_NRE_Portal.Data
                 int count = ImportPublicInstallations(ctx, file);
                 Console.WriteLine($"✅ {count} PublicInstallations imported.");
             }
-
-          /*  // Private installations
-            if (!ctx.PrivateInstallations.Any())
-            {
-                string file = Path.Combine(basePath, "PrivateInstallations.csv");
-                int count = ImportPrivateInstallations(ctx, file);
-                Console.WriteLine($"✅ {count} PrivateInstallations importées.");
-            }   */
-
-
 
             // Code of Dehlya
             /* // Production summaries (tiny sample; extend later)
@@ -108,15 +97,15 @@ namespace WebAPI_NRE_Portal.Data
             int inserted = 0;
             foreach (var line in File.ReadLines(path).Skip(1))
             {
+
                 var parts = line.Split(delimiter);
-                if (parts.Length < 4) continue;
 
                 var data = new ProductionData
                 {
                     Year = int.Parse(parts[0].Trim()),
-                    EnergyType = parts[1].Trim(),
-                    ProductionKWh = ParseDouble(parts[2]),
-                    Canton = parts[3].Trim()
+                    ProductionKWh = ParseDouble(parts[1]),
+                    EnergyType = parts[2].Trim(),
+                    Canton = "VS"
                 };
 
                 ctx.ProductionSummaries.Add(data);
@@ -147,8 +136,6 @@ namespace WebAPI_NRE_Portal.Data
                 { "subcat_9", "Coal" },
                 { "subcat_10", "Waste" },
             };
-
-            Console.WriteLine("test");
 
             int inserted = 0;
             foreach (var line in File.ReadLines(path))
@@ -190,44 +177,6 @@ namespace WebAPI_NRE_Portal.Data
                     SourceRef = parts[0].Trim()
                 };
                 ctx.PublicInstallations.Add(plant);
-                inserted++;
-            }
-
-            return inserted;
-        }
-
-        private static int ImportPrivateInstallations(NrePortalContext ctx, string path, char delimiter = ',')
-        {
-            if (!File.Exists(path))
-            {
-                Console.WriteLine($"⚠️ Fichier introuvable : {path}");
-                return 0;
-            }
-
-            int inserted = 0;
-            foreach (var line in File.ReadLines(path).Skip(1))
-            {
-                var parts = line.Split(delimiter);
-                if (parts.Length < 10) continue;
-
-                var pv = new PrivateInstallation
-                {
-                    Name = parts[0].Trim(),
-                    EnergyType = parts[1].Trim(),
-                    Region = parts[2].Trim(),
-                    InstalledCapacityKW = ParseDouble(parts[3]),
-                    PvCellType = parts[4].Trim(),
-                    IntegrationType = parts[5].Trim(),
-                  //  Azimuth = ParseNullable(parts[6]),
-                   // RoofSlope = ParseNullable(parts[7]),
-                    AreaM2 = ParseNullable(parts[8]),
-                    EstimatedKWh = ParseNullable(parts[9]),
-                    LocationText = parts.Length > 10 ? parts[10].Trim() : null,
-                    Latitude = parts.Length > 11 ? ParseNullable(parts[11]) : null,
-                    Longitude = parts.Length > 12 ? ParseNullable(parts[12]) : null
-                };
-
-                ctx.PrivateInstallations.Add(pv);
                 inserted++;
             }
 
