@@ -1,4 +1,7 @@
+using DataLayer_NRE_Portal.Data;
+using Microsoft.EntityFrameworkCore;
 using WebAPI_NRE_Portal.Services;
+using WebAPI_NRE_Portal.Data;
 
 namespace WebAPI_NRE_Portal
 {
@@ -8,10 +11,10 @@ namespace WebAPI_NRE_Portal
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            builder.Services.AddDbContext<NrePortalContext>(options =>
+                options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
@@ -35,8 +38,15 @@ namespace WebAPI_NRE_Portal
             });
 
             var app = builder.Build();
-            
-            // Configure the HTTP request pipeline.
+
+            // seed
+            using (var scope = app.Services.CreateScope())
+            {
+                var ctx = scope.ServiceProvider.GetRequiredService<NrePortalContext>();
+                ctx.Database.Migrate();
+                DbSeeder.Seed(ctx);
+            }
+
             if (app.Environment.IsDevelopment())
             {
                 app.UseSwagger();
@@ -50,7 +60,6 @@ namespace WebAPI_NRE_Portal
             app.UseAuthorization();
 
             app.MapControllers();
-
             app.Run();
         }
     }
