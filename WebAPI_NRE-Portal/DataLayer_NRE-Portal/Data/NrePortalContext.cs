@@ -21,7 +21,7 @@ namespace DataLayer_NRE_Portal.Data
             // If no provider configured (design-time), use local SQLite
             if (!optionsBuilder.IsConfigured)
             {
-                optionsBuilder.UseSqlite("Data Source=nreportal.db");
+                optionsBuilder.UseSqlite("Data Source=/tmp/nreportal.db");
             }
         }
 
