@@ -21,7 +21,7 @@ namespace WebAPI_NRE_Portal
             builder.Services.AddScoped<IProductionService, ProductionService>();
             builder.Services.AddScoped<IPrivateInstallationService, PrivateInstallationService>();
 
-            // CORS configuration - MOVED HERE (before builder.Build())
+            // CORS configuration
             const string CorsPolicy = "AllowLocal";
             builder.Services.AddCors(o =>
             {
@@ -31,8 +31,10 @@ namespace WebAPI_NRE_Portal
                         "http://localhost:5172",
                         "http://localhost:5002",
                         "https://localhost:5001",
-                        "http://mvc:8080",           // Docker container name
-                        "http://localhost:5002"       // Docker host access
+                        "http://mvc:8080",                                          // Docker container name
+                        "http://localhost:5002",                                     // Docker host access
+                        "http://uas-nre-mvc.uksouth.azurecontainer.io:8080",       // ✅ ADD: Deployed MVC with port
+                        "http://uas-nre-mvc.uksouth.azurecontainer.io"             // ✅ ADD: Deployed MVC without port
                     )
                      .AllowAnyHeader()
                      .AllowAnyMethod());
