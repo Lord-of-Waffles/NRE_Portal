@@ -15,14 +15,53 @@ namespace WebAPI_NRE_Portal.Services
 
         public async Task<IEnumerable<ProductionData>> GetProductionData(string canton)
         {
-            return await _context.ProductionSummaries.Where(x => x.Canton == canton)
-                .OrderBy(x => x.Year)
+            // 1. Get historical data from ProductionSummaries table (2010-2018 CSV data)
+            var historical = await _context.ProductionSummaries
+                .AsNoTracking()
+                .Where(x => x.Canton == canton)
                 .ToListAsync();
+            
+            // 2. Get user-added private installations and aggregate by year + energy type
+            var privateInstallationsRaw = await _context.PrivateInstallations
+                .AsNoTracking()
+                .Where(x => x.Region == canton && x.CommissioningDate.HasValue)
+                .ToListAsync();
+            
+            // 3. Group private installations by year + energy type
+            var privateInstallations = privateInstallationsRaw
+                .GroupBy(x => new { 
+                    Year = x.CommissioningDate!.Value.Year, 
+                    x.EnergyType 
+                })
+                .Select(g => new ProductionData
+                {
+                    Year = g.Key.Year,
+                    EnergyType = g.Key.EnergyType,
+                    ProductionKWh = g.Sum(i => i.AnnualProductionKWh ?? i.EstimatedKWh ?? 0),
+                    Canton = canton
+                })
+                .ToList();
+            
+            // 4. Combine historical + user-added data
+            // If same year+type exists in both, sum them together
+            var combined = historical.Concat(privateInstallations)
+                .GroupBy(x => new { x.Year, x.EnergyType })
+                .Select(g => new ProductionData
+                {
+                    Id = g.First().Id,
+                    Year = g.Key.Year,
+                    EnergyType = g.Key.EnergyType,
+                    ProductionKWh = g.Sum(x => x.ProductionKWh),
+                    Canton = canton
+                })
+                .OrderBy(x => x.Year)
+                .ThenBy(x => x.EnergyType);
+            
+            return combined;
         }
 
         public List<ProductionDataDto> GetFakeYearProduction()
         {
-            
             var exampleData = new List<ProductionDataDto>
             {
                 new ProductionDataDto { Year = 2015, ProductionKw = 13250, EnergyType = "Solar", Region = "VS" },
@@ -39,6 +78,7 @@ namespace WebAPI_NRE_Portal.Services
             return exampleData;
         }
     }
+    
     public class ProductionDataDto
     {
         public int Id { get; set; }
