@@ -32,6 +32,9 @@ EXPOSE 8081
 # Copy published application
 COPY --from=publish /app/publish .
 
+# Copy CSV resources from build stage
+COPY --from=build /src/DataLayer_NRE-Portal/Resources ./Resources
+
 # Create directory for SQLite database
 RUN mkdir -p /app/data
 

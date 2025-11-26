@@ -2,7 +2,6 @@
 using DataLayer_NRE_Portal.Geo;
 using DataLayer_NRE_Portal.Models;
 using System.Globalization;
-using System.Resources;
 
 namespace WebAPI_NRE_Portal.Data
 {
@@ -10,78 +9,73 @@ namespace WebAPI_NRE_Portal.Data
     {
         public static void Seed(NrePortalContext ctx)
         {
-            // Path to CSV files
-            string solutionRoot = Directory.GetParent(AppContext.BaseDirectory)!.Parent!.Parent!.Parent!.Parent!.FullName;
-            string basePath = Path.Combine(solutionRoot, "DataLayer_NRE-Portal", "Resources");
+            // Try container path first, fallback to development path
+            string basePath;
+            
+            // In container, CSVs should be at /app/Resources
+            string containerPath = Path.Combine(AppContext.BaseDirectory, "Resources");
+            
+            if (Directory.Exists(containerPath))
+            {
+                basePath = containerPath;
+                Console.WriteLine($" Using container path: {basePath}");
+            }
+            else
+            {
+                // Development: navigate up from bin folder
+                try
+                {
+                    string? solutionRoot = Directory.GetParent(AppContext.BaseDirectory)?.Parent?.Parent?.Parent?.Parent?.FullName;
+                    if (solutionRoot == null)
+                    {
+                        Console.WriteLine("️ Could not find solution root. Skipping seeding.");
+                        return;
+                    }
+                    basePath = Path.Combine(solutionRoot, "DataLayer_NRE-Portal", "Resources");
+                    Console.WriteLine($" Using development path: {basePath}");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"️ Error finding resources path: {ex.Message}. Skipping seeding.");
+                    return;
+                }
+            }
+            
+            if (!Directory.Exists(basePath))
+            {
+                Console.WriteLine($" Resources directory not found at {basePath}. Skipping seeding.");
+                return;
+            }
 
             // Production summaries
             if (!ctx.ProductionSummaries.Any())
             {
                 string file = Path.Combine(basePath, "ProductionSummaries.csv");
-                int count = ImportProductionSummaries(ctx, file);
-                Console.WriteLine($"✅ {count} ProductionSummaries importées.");
+                if (File.Exists(file))
+                {
+                    int count = ImportProductionSummaries(ctx, file);
+                    Console.WriteLine($" {count} ProductionSummaries imported.");
+                }
+                else
+                {
+                    Console.WriteLine($"️ ProductionSummaries.csv not found.");
+                }
             }   
 
             // Public installations
             if (!ctx.PublicInstallations.Any())
             {
                 string file = Path.Combine(basePath, "ElectricityProductionPlant.csv");
-                int count = ImportPublicInstallations(ctx, file);
-                Console.WriteLine($"✅ {count} PublicInstallations imported.");
+                if (File.Exists(file))
+                {
+                    int count = ImportPublicInstallations(ctx, file);
+                    Console.WriteLine($" {count} PublicInstallations imported.");
+                }
+                else
+                {
+                    Console.WriteLine($"️ ElectricityProductionPlant.csv not found.");
+                }
             }
-
-            // Code of Dehlya
-            /* // Production summaries (tiny sample; extend later)
-             if (!ctx.ProductionSummaries.Any())
-             {
-                 ctx.ProductionSummaries.AddRange(
-                     new ProductionData { Year = 2010, EnergyType = "PV", ProductionKWh = 1_000_000, Canton = "VS" },
-                     new ProductionData { Year = 2010, EnergyType = "Windturbine", ProductionKWh = 10_000_000, Canton = "VS" },
-                     new ProductionData { Year = 2010, EnergyType = "Biogas", ProductionKWh = 3_000_000, Canton = "VS" },
-                     new ProductionData { Year = 2010, EnergyType = "Mini-Hydraulic", ProductionKWh = 429_000_000, Canton = "VS" }
-                 );
-             }
-
-             // One public plant (fake)
-             if (!ctx.PublicInstallations.Any())
-             {
-                 ctx.PublicInstallations.Add(new PublicInstallation
-                 {
-                     Name = "VS Demo Hydro",
-                     EnergyType = "Hydro",
-                     Region = "VS",
-                     InstalledCapacityKW = 50000,
-                     AnnualProductionKWh = 120_000_000,
-                     Municipality = "Sion",
-                     Latitude = 46.233,
-                     Longitude = 7.360,
-                     SourceCrs = "EPSG:4326",
-                     IsActive = true
-                 });
-             }
-
-             // One private install (fake)
-             if (!ctx.PrivateInstallations.Any())
-             {
-                 ctx.PrivateInstallations.Add(new PrivateInstallation
-                 {
-                     Name = "Rooftop PV #1",
-                     EnergyType = "PV",
-                     Region = "VS",
-                     InstalledCapacityKW = 6.0,
-                     PvCellType = "Monocrystalline",
-                     IntegrationType = "Integrated",
-                     Azimuth = 0,
-                     RoofSlope = 25,
-                     LengthM = 10,
-                     WidthM = 4,
-                     AreaM2 = 40,
-                     EstimatedKWh = 40 * 250 * 1.0, // 10,000 kWh/y (your PV rule of thumb)
-                     LocationText = "Sion",
-                     Latitude = 46.238,
-                     Longitude = 7.358
-                 });
-             }   */
 
             ctx.SaveChanges();
         }
@@ -90,14 +84,13 @@ namespace WebAPI_NRE_Portal.Data
         {
             if (!File.Exists(path))
             {
-                Console.WriteLine($"⚠️ Fichier introuvable : {path}");
+                Console.WriteLine($"️ Fichier introuvable : {path}");
                 return 0;
             }
 
             int inserted = 0;
             foreach (var line in File.ReadLines(path).Skip(1))
             {
-
                 var parts = line.Split(delimiter);
 
                 var data = new ProductionData
@@ -119,7 +112,7 @@ namespace WebAPI_NRE_Portal.Data
         {
             if (!File.Exists(path))
             {
-                Console.WriteLine($"⚠️ Fichier introuvable : {path}");
+                Console.WriteLine($" Fichier introuvable : {path}");
                 return 0;
             }
 
