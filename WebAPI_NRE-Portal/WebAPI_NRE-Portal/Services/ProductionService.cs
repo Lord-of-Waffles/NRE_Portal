@@ -1,10 +1,23 @@
-﻿namespace WebAPI_NRE_Portal.Services
+﻿using DataLayer_NRE_Portal;
+using DataLayer_NRE_Portal.Data;
+using DataLayer_NRE_Portal.Models;
+using Microsoft.EntityFrameworkCore;
+
+namespace WebAPI_NRE_Portal.Services
 {
     public class ProductionService : IProductionService
     {
-        public ProductionService()
+        private readonly NrePortalContext _context;
+        public ProductionService(NrePortalContext context)
         {
+            _context = context;
+        }
 
+        public async Task<IEnumerable<ProductionData>> GetProductionData(string canton)
+        {
+            return await _context.ProductionSummaries.Where(x => x.Canton == canton)
+                .OrderBy(x => x.Year)
+                .ToListAsync();
         }
 
         public List<ProductionDataDto> GetFakeYearProduction()

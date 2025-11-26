@@ -19,6 +19,7 @@ namespace WebAPI_NRE_Portal
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddScoped<IProductionService, ProductionService>();
+            builder.Services.AddScoped<IPrivateInstallationService, PrivateInstallationService>();
 
             // CORS configuration - MOVED HERE (before builder.Build())
             const string CorsPolicy = "AllowLocal";

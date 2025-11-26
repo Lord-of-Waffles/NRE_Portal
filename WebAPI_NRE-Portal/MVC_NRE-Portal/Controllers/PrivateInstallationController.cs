@@ -1,10 +1,20 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using MVC_NRE_Portal.Models;
+using MVC_NRE_Portal.Services;
 
 namespace MVC_NRE_Portal.Controllers
 {
     public class PrivateInstallationController : Controller
     {
+        private readonly IPrivateInstallationServiceMVC _privateInstallationService;
+
+        public PrivateInstallationController(IPrivateInstallationServiceMVC privateInstallationService)
+        {
+            _privateInstallationService = privateInstallationService;
+        }
+
+
+
         // GET /PrivateInstallation?step=1
         [HttpGet]
         public IActionResult Index(int step = 1)
@@ -46,12 +56,13 @@ namespace MVC_NRE_Portal.Controllers
         // Later, hook to API: POST to /api/privateinstallations
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public IActionResult Save(PrivateInstallationViewModel model)
+        public async Task<IActionResult> Save(PrivateInstallationViewModel model)
         {
             model.EnsureArea();
 
             // TODO: Call WebAPI when ready
             // using HttpClient to POST model as JSON to /api/privateinstallations
+            await _privateInstallationService.PostPrivateInstallation(model);
 
             TempData["Saved"] = "Private installation saved (stub).";
             return RedirectToAction(nameof(Index), new { step = 1 });
