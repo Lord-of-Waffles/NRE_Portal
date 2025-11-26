@@ -19,7 +19,7 @@ namespace MVC_NRE_Portal.Controllers
         public async Task<IActionResult> Index()
         {
             // Pull all rows (PV, Mini-Hydraulic, Windturbine, Biogas)
-            var all = await _productionServiceMVC.GetFakeYearData();
+            var all = await _productionServiceMVC.GetProductionSummary();
 
             // Aggregate to ONE value per year so the home chart is smooth, not zig-zag
             var yearlyTotals = all
