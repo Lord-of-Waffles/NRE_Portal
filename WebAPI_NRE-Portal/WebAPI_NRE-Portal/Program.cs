@@ -31,10 +31,10 @@ namespace WebAPI_NRE_Portal
                         "http://localhost:5172",
                         "http://localhost:5002",
                         "https://localhost:5001",
-                        "http://mvc:8080",                                          // Docker container name
-                        "http://localhost:5002",                                     // Docker host access
-                        "http://uas-nre-mvc.uksouth.azurecontainer.io:8080",       // ✅ ADD: Deployed MVC with port
-                        "http://uas-nre-mvc.uksouth.azurecontainer.io"             // ✅ ADD: Deployed MVC without port
+                        "http://mvc:8080",
+                        "http://localhost:5002",
+                        "http://uas-nre-mvc.uksouth.azurecontainer.io:8080",
+                        "http://uas-nre-mvc.uksouth.azurecontainer.io"
                     )
                      .AllowAnyHeader()
                      .AllowAnyMethod());
@@ -50,18 +50,15 @@ namespace WebAPI_NRE_Portal
                 DbSeeder.Seed(ctx);
             }
 
-            if (app.Environment.IsDevelopment())
-            {
-                app.UseSwagger();
-                app.UseSwaggerUI();
-            }
+            // Always enable Swagger for debugging in Azure
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
-            app.UseHttpsRedirection();
+            // DON'T redirect to HTTPS in containers without certificates
+            // app.UseHttpsRedirection();
             
-            app.UseCors(CorsPolicy); // Enable CORS middleware
-
+            app.UseCors(CorsPolicy);
             app.UseAuthorization();
-
             app.MapControllers();
             app.Run();
         }
