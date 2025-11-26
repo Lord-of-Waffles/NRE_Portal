@@ -18,7 +18,15 @@
         {
             return new DataLayer_NRE_Portal.Models.PrivateInstallation
             {
+                // FROM INSTALLATIONBASE - ADD THESE
+                Name = dto.Name ?? string.Empty,
                 EnergyType = dto.EnergyType ?? string.Empty,
+                Region = dto.Region ?? "VS",
+                InstalledCapacityKW = dto.InstalledCapacityKW,
+                AnnualProductionKWh = dto.AnnualProductionKWh,
+                CommissioningDate = dto.CommissioningDate,  // ← KEY FIELD!
+        
+                // PRIVATE INSTALLATION SPECIFIC
                 IntegrationType = dto.IntegrationType,
                 PvCellType = dto.PvCellType,
                 Azimuth = dto.Azimuth,
@@ -29,8 +37,7 @@
                 WidthM = dto.WidthM,
                 AreaM2 = dto.AreaM2,
                 LocationText = dto.LocationText,
-                EstimatedKWh = dto.EstimatedKWh,
-                InstalledCapacityKW = dto.EstimatedKWh ?? 0
+                EstimatedKWh = dto.EstimatedKWh
             };
         }
     }
