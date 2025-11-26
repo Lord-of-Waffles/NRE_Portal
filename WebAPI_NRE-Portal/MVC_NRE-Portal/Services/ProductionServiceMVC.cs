@@ -107,8 +107,8 @@ namespace MVC_NRE_Portal.Services
             rows.AddRange(miniHydroGWh.Select(x => new ProductionDataDto
             {
                 Year = x.Year,
-                ProductionKw = x.GWh * KWH_PER_GWH, // store as kWh
-                EnergyType = "Mini-Hydraulic",
+                ProductionKw = x.GWh * KWH_PER_GWH,
+                EnergyType = "Hydroelectric power", // ← CHANGE THIS LINE
                 Region = "VS"
             }));
 
@@ -116,7 +116,7 @@ namespace MVC_NRE_Portal.Services
             {
                 Year = x.Year,
                 ProductionKw = x.GWh * KWH_PER_GWH,
-                EnergyType = "Biogas",
+                EnergyType = "Biogas", // ← KEEP THIS
                 Region = "VS"
             }));
 
@@ -124,7 +124,7 @@ namespace MVC_NRE_Portal.Services
             {
                 Year = x.Year,
                 ProductionKw = x.GWh * KWH_PER_GWH,
-                EnergyType = "PV",
+                EnergyType = "Photovoltaic", // ← CHANGE THIS LINE
                 Region = "VS"
             }));
 
@@ -132,7 +132,7 @@ namespace MVC_NRE_Portal.Services
             {
                 Year = x.Year,
                 ProductionKw = x.GWh * KWH_PER_GWH,
-                EnergyType = "Windturbine",
+                EnergyType = "Wind energy", // ← CHANGE THIS LINE
                 Region = "VS"
             }));
 
