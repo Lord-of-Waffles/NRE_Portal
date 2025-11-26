@@ -18,7 +18,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DataLayer_NRE-Portal\DataLayer_NRE-Portal.csproj" />
-    <ProjectReference Include="..\MVC_NRE-Portal\MVC_NRE-Portal.csproj" />
   </ItemGroup>
 
 </Project>
