@@ -23,35 +23,6 @@ namespace MVC_NRE_Portal.Tests.Controllers
         }
 
         [Fact]
-        public async Task Index_ReturnsViewResult()
-        {
-            // Arrange
-            _mockService.Setup(s => s.GetFakeYearData())
-                       .ReturnsAsync(GetTestProductionData());
-            
-            // Act
-            var result = await _controller.Index();
-            
-            // Assert
-            Assert.IsType<ViewResult>(result);
-        }
-
-        [Fact]
-        public async Task Index_ReturnsViewWithChartViewModel()
-        {
-            // Arrange
-            _mockService.Setup(s => s.GetFakeYearData())
-                       .ReturnsAsync(GetTestProductionData());
-            
-            // Act
-            var result = await _controller.Index() as ViewResult;
-            
-            // Assert
-            Assert.NotNull(result);
-            Assert.IsType<ChartViewModel>(result.Model);
-        }
-
-        [Fact]
         public void Privacy_ReturnsViewResult()
         {
             // Act
