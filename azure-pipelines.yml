@@ -87,10 +87,10 @@ stages:
             displayName: 'Restore packages'
 
           - powershell: |
-            Get-ChildItem -Recurse -Filter "*_Tests.csproj" | ForEach-Object {
-            Write-Host "Running tests for $($_.FullName)"
-            dotnet test $_.FullName --configuration Release --logger "trx;LogFileName=test_results.trx"
-            }
+              Get-ChildItem -Recurse -Filter "*_Tests.csproj" | ForEach-Object {
+                Write-Host "Running tests for $($_.FullName)"
+                dotnet test $_.FullName --configuration Release --logger "trx;LogFileName=test_results.trx"
+              }
             displayName: 'Run xUnit Tests'
 
           - task: PublishTestResults@2
