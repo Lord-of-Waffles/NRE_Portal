@@ -66,35 +66,36 @@ stages:
               tags: |
                 $(tag)
                 latest
+
   - stage: UnitTests
-  displayName: 'Run Unit Tests'
-  dependsOn: Build
-  condition: succeeded()
-  jobs:
-    - job: RunDotNetTests
-      displayName: 'Execute All xUnit Tests'
-      pool:
-        vmImage: 'windows-latest'
+    displayName: 'Run Unit Tests'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: RunDotNetTests
+        displayName: 'Execute All xUnit Tests'
+        pool:
+          vmImage: 'windows-latest'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '8.x'
 
-      steps:
-        - task: UseDotNet@2
-          displayName: 'Install .NET SDK'
-          inputs:
-            packageType: 'sdk'
-            version: '8.x'
+          - script: dotnet restore
+            displayName: 'Restore packages'
 
-        - script: dotnet restore
-          displayName: 'Restore packages'
+          - script: dotnet test **/*_Tests.csproj --configuration Release --logger "trx;LogFileName=test_results.trx"
+            displayName: 'Run xUnit Tests'
 
-        - script: dotnet test **/*_Tests.csproj --configuration Release --logger "trx;LogFileName=test_results.trx"
-          displayName: 'Run xUnit Tests'
+          - task: PublishTestResults@2
+            displayName: 'Publish Test Results'
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '**/test_results.trx'
+              failTaskOnFailedTests: true
 
-        - task: PublishTestResults@2
-          displayName: 'Publish Test Results'
-          inputs:
-            testResultsFormat: 'VSTest'
-            testResultsFiles: '**/test_results.trx'
-            failTaskOnFailedTests: true
   - stage: Deploy
     displayName: 'Deploy to Azure'
     dependsOn: Build
@@ -111,10 +112,10 @@ stages:
               script: |
                 Write-Host "Getting ACR credentials..."
                 $acrPass = az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv
-                
+
                 Write-Host "Checking if API container exists..."
                 $exists = az container show --resource-group $(resourceGroup) --name nre-portal-api --query "id" -o tsv 2>&1
-                
+
                 if ($LASTEXITCODE -eq 0) {
                   Write-Host "Container exists, deleting old one..."
                   az container delete --resource-group $(resourceGroup) --name nre-portal-api --yes
@@ -122,7 +123,7 @@ stages:
                 } else {
                   Write-Host "Container doesn't exist yet, creating new one..."
                 }
-                
+
                 Write-Host "Deploying new API container..."
                 az container create `
                   --resource-group $(resourceGroup) `
@@ -139,7 +140,7 @@ stages:
                   --environment-variables `
                     ASPNETCORE_ENVIRONMENT=Development `
                     ASPNETCORE_URLS=http://+:8080
-                
+
                 if ($LASTEXITCODE -eq 0) {
                   Write-Host "API container deployed successfully!"
                 } else {
@@ -155,14 +156,14 @@ stages:
               script: |
                 Write-Host "Getting ACR credentials..."
                 $acrPass = az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv
-                
+
                 Write-Host "Getting API URL..."
                 $apiUrl = az container show --resource-group $(resourceGroup) --name nre-portal-api --query ipAddress.fqdn -o tsv
                 Write-Host "API URL: http://$apiUrl:8080"
-                
+
                 Write-Host "Checking if MVC container exists..."
                 $exists = az container show --resource-group $(resourceGroup) --name nre-portal-mvc --query "id" -o tsv 2>&1
-                
+
                 if ($LASTEXITCODE -eq 0) {
                   Write-Host "Container exists, deleting old one..."
                   az container delete --resource-group $(resourceGroup) --name nre-portal-mvc --yes
@@ -170,7 +171,7 @@ stages:
                 } else {
                   Write-Host "Container doesn't exist yet, creating new one..."
                 }
-                
+
                 Write-Host "Deploying new MVC container..."
                 az container create `
                   --resource-group $(resourceGroup) `
@@ -188,10 +189,10 @@ stages:
                     ASPNETCORE_ENVIRONMENT=Development `
                     ASPNETCORE_URLS=http://+:8080 `
                     ApiBaseUrl=http://${apiUrl}:8080
-                
+
                 if ($LASTEXITCODE -eq 0) {
                   $mvcUrl = az container show --resource-group $(resourceGroup) --name nre-portal-mvc --query ipAddress.fqdn -o tsv
-                  
+
                   Write-Host ""
                   Write-Host "========================================="
                   Write-Host "Deployment Complete!"
@@ -202,4 +203,4 @@ stages:
                 } else {
                   Write-Host "MVC deployment failed!"
                   exit 1
-                }
+ 
