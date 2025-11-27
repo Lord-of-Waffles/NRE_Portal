@@ -66,7 +66,35 @@ stages:
               tags: |
                 $(tag)
                 latest
+  - stage: UnitTests
+  displayName: 'Run Unit Tests'
+  dependsOn: Build
+  condition: succeeded()
+  jobs:
+    - job: RunDotNetTests
+      displayName: 'Execute All xUnit Tests'
+      pool:
+        vmImage: 'windows-latest'
 
+      steps:
+        - task: UseDotNet@2
+          displayName: 'Install .NET SDK'
+          inputs:
+            packageType: 'sdk'
+            version: '8.x'
+
+        - script: dotnet restore
+          displayName: 'Restore packages'
+
+        - script: dotnet test **/*_Tests.csproj --configuration Release --logger "trx;LogFileName=test_results.trx"
+          displayName: 'Run xUnit Tests'
+
+        - task: PublishTestResults@2
+          displayName: 'Publish Test Results'
+          inputs:
+            testResultsFormat: 'VSTest'
+            testResultsFiles: '**/test_results.trx'
+            failTaskOnFailedTests: true
   - stage: Deploy
     displayName: 'Deploy to Azure'
     dependsOn: Build
