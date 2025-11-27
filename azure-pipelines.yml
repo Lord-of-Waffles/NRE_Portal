@@ -83,7 +83,7 @@ stages:
               packageType: 'sdk'
               version: '8.x'
 
-          - script: dotnet restore
+          - script: dotnet restore WebAPI_NRE-Portal/WebAPI_NRE-Portal.sln
             displayName: 'Restore packages'
 
           - script: dotnet test **/*_Tests.csproj --configuration Release --logger "trx;LogFileName=test_results.trx"
