@@ -38,7 +38,7 @@ namespace WebAPI_NRE_Portal.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> Get(int id)
         {
-            var item = await _ctx.PrivateInstallations.FindAsync(id);
+            var item = await _privateService.GetByIdAsync(id);
             return item is null ? NotFound() : Ok(item);
         }
 
