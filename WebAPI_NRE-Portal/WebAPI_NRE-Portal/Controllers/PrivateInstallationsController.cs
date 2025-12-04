@@ -51,10 +51,8 @@ namespace WebAPI_NRE_Portal.Controllers
         [HttpDelete("all")]
         public async Task<IActionResult> DeleteAll()
         {
-            var allPrivate = await _ctx.PrivateInstallations.ToListAsync();
-            _ctx.PrivateInstallations.RemoveRange(allPrivate);
-            await _ctx.SaveChangesAsync();
-            return Ok(new { message = $"Deleted {allPrivate.Count} private installations" });
+            await _privateService.DeleteAllAsync();
+            return Ok(new { message = "All private installations deleted" });
         }
     }
 }

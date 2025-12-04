@@ -8,6 +8,7 @@ namespace WebAPI_NRE_Portal.Services
     public class PrivateInstallationService : IPrivateInstallationService
     {
         private readonly NrePortalContext _context;
+
         public PrivateInstallationService(NrePortalContext context)
         {
             _context = context;
@@ -21,7 +22,9 @@ namespace WebAPI_NRE_Portal.Services
 
             if (string.Equals(dto.EnergyType, "PV", StringComparison.OrdinalIgnoreCase))
             {
-                double perM2 = dto.PvCellType?.Equals("Monocrystalline", StringComparison.OrdinalIgnoreCase) == true ? 250 : 175;
+                double perM2 = dto.PvCellType?.Equals("Monocrystalline", StringComparison.OrdinalIgnoreCase) == true
+                    ? 250
+                    : 175;
                 double az = dto.Azimuth ?? 0;
                 double orientationFactor = Math.Abs(az) <= 15 ? 1.0 : (Math.Abs(az) >= 75 ? 0.8 : 0.9);
                 dto.EstimatedKWh = (dto.AreaM2 ?? 0) * perM2 * orientationFactor;
@@ -35,11 +38,11 @@ namespace WebAPI_NRE_Portal.Services
             dto.Id = entity.Id;
             return dto;
         }
-        
+
         public async Task<List<PrivateInstallationDto>> GetInstallationsAsync()
         {
             var installations = await _context.PrivateInstallations.ToListAsync();
-        
+
             // Map to DTOs
             return installations.Select(i => new PrivateInstallationDto
             {
@@ -49,28 +52,28 @@ namespace WebAPI_NRE_Portal.Services
                 Region = i.Region,
                 InstalledCapacityKW = i.InstalledCapacityKW,
                 AnnualProductionKWh = i.AnnualProductionKWh,
-                CommissioningDate =  i.CommissioningDate,
+                CommissioningDate = i.CommissioningDate,
                 IntegrationType = i.IntegrationType,
                 PvCellType = i.PvCellType,
                 Azimuth = i.Azimuth,
-                RoofSlope =  i.RoofSlope,
+                RoofSlope = i.RoofSlope,
                 Latitude = i.Latitude,
                 Longitude = i.Longitude,
                 LengthM = i.LengthM,
                 WidthM = i.WidthM,
                 AreaM2 = i.AreaM2,
-                EstimatedKWh =  i.EstimatedKWh,
-                LocationText =  i.LocationText
+                EstimatedKWh = i.EstimatedKWh,
+                LocationText = i.LocationText
             }).ToList();
         }
-        
+
         public async Task<PrivateInstallationDto?> GetByIdAsync(int id)
         {
             var installation = await _context.PrivateInstallations.FindAsync(id);
-    
+
             if (installation == null)
                 return null;
-    
+
             return new PrivateInstallationDto
             {
                 Id = installation.Id,
@@ -79,21 +82,28 @@ namespace WebAPI_NRE_Portal.Services
                 Region = installation.Region,
                 InstalledCapacityKW = installation.InstalledCapacityKW,
                 AnnualProductionKWh = installation.AnnualProductionKWh,
-                CommissioningDate =  installation.CommissioningDate,
+                CommissioningDate = installation.CommissioningDate,
                 IntegrationType = installation.IntegrationType,
                 PvCellType = installation.PvCellType,
                 Azimuth = installation.Azimuth,
-                RoofSlope =  installation.RoofSlope,
+                RoofSlope = installation.RoofSlope,
                 Latitude = installation.Latitude,
                 Longitude = installation.Longitude,
                 LengthM = installation.LengthM,
                 WidthM = installation.WidthM,
                 AreaM2 = installation.AreaM2,
-                EstimatedKWh =  installation.EstimatedKWh,
-                LocationText =  installation.LocationText
+                EstimatedKWh = installation.EstimatedKWh,
+                LocationText = installation.LocationText
             };
         }
-        
-        
-    }
+
+        public async Task DeleteAllAsync()
+        {
+            var allPrivate = await _context.PrivateInstallations.ToListAsync();
+            _context.PrivateInstallations.RemoveRange(allPrivate);
+            await _context.SaveChangesAsync();
+        }
+
+
+}
 }

@@ -7,5 +7,6 @@ namespace WebAPI_NRE_Portal.Services
         Task<PrivateInstallationDto> CreateInstallationAsync(PrivateInstallationDto dto);
         Task<List<PrivateInstallationDto>> GetInstallationsAsync();
         Task<PrivateInstallationDto?> GetByIdAsync(int id);
+        Task DeleteAllAsync();
     }
 }
