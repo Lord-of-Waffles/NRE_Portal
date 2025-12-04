@@ -135,7 +135,7 @@ public class PrivateInstallationsControllerTests
         Assert.Equal(createdDto.EnergyType, returnedDto.EnergyType);    }
 
     [Fact]
-    public async Task get_api_privateinstallations_id_test()
+    public async Task get_api_privateinstallations_id_returns_correct_installation()
     {
         var mockContext = new Mock<NrePortalContext>();
         var mockService = new Mock<IPrivateInstallationService>();
@@ -174,7 +174,7 @@ public class PrivateInstallationsControllerTests
     }
 
     [Fact]
-    public async Task delete_api_privateinstallations_all_test()
+    public async Task delete_api_privateinstallations_all_is_executed()
     {
         var mockContext = new Mock<NrePortalContext>();
         var mockService = new Mock<IPrivateInstallationService>();
