@@ -24,16 +24,21 @@ namespace WebAPI_NRE_Portal.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? region = "VS", [FromQuery] string? energy = null)
         {
-            var q = _ctx.PrivateInstallations.AsNoTracking();
-            if (!string.IsNullOrWhiteSpace(region)) q = q.Where(x => x.Region == region);
-            if (!string.IsNullOrWhiteSpace(energy)) q = q.Where(x => x.EnergyType == energy);
-            return Ok(await q.ToListAsync());
+            var installations = await _privateService.GetInstallationsAsync();
+    
+            if (!string.IsNullOrWhiteSpace(region)) 
+                installations = installations.Where(x => x.Region == region).ToList();
+    
+            if (!string.IsNullOrWhiteSpace(energy)) 
+                installations = installations.Where(x => x.EnergyType == energy).ToList();
+    
+            return Ok(installations);
         }
 
         [HttpGet("{id:int}")]
         public async Task<IActionResult> Get(int id)
         {
-            var item = await _ctx.PrivateInstallations.FindAsync(id);
+            var item = await _privateService.GetByIdAsync(id);
             return item is null ? NotFound() : Ok(item);
         }
 
@@ -46,10 +51,8 @@ namespace WebAPI_NRE_Portal.Controllers
         [HttpDelete("all")]
         public async Task<IActionResult> DeleteAll()
         {
-            var allPrivate = await _ctx.PrivateInstallations.ToListAsync();
-            _ctx.PrivateInstallations.RemoveRange(allPrivate);
-            await _ctx.SaveChangesAsync();
-            return Ok(new { message = $"Deleted {allPrivate.Count} private installations" });
+            await _privateService.DeleteAllAsync();
+            return Ok(new { message = "All private installations deleted" });
         }
     }
 }
