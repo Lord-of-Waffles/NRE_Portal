@@ -24,10 +24,15 @@ namespace WebAPI_NRE_Portal.Controllers
         [HttpGet]
         public async Task<IActionResult> GetAll([FromQuery] string? region = "VS", [FromQuery] string? energy = null)
         {
-            var q = _ctx.PrivateInstallations.AsNoTracking();
-            if (!string.IsNullOrWhiteSpace(region)) q = q.Where(x => x.Region == region);
-            if (!string.IsNullOrWhiteSpace(energy)) q = q.Where(x => x.EnergyType == energy);
-            return Ok(await q.ToListAsync());
+            var installations = await _privateService.GetInstallationsAsync();
+    
+            if (!string.IsNullOrWhiteSpace(region)) 
+                installations = installations.Where(x => x.Region == region).ToList();
+    
+            if (!string.IsNullOrWhiteSpace(energy)) 
+                installations = installations.Where(x => x.EnergyType == energy).ToList();
+    
+            return Ok(installations);
         }
 
         [HttpGet("{id:int}")]

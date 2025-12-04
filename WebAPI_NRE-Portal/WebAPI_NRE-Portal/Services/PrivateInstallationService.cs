@@ -1,4 +1,5 @@
 ﻿using DataLayer_NRE_Portal.Data;
+using Microsoft.EntityFrameworkCore;
 using WebAPI_NRE_Portal.Extensions;
 using WebAPI_NRE_Portal.Models;
 
@@ -34,5 +35,65 @@ namespace WebAPI_NRE_Portal.Services
             dto.Id = entity.Id;
             return dto;
         }
+        
+        public async Task<List<PrivateInstallationDto>> GetInstallationsAsync()
+        {
+            var installations = await _context.PrivateInstallations.ToListAsync();
+        
+            // Map to DTOs
+            return installations.Select(i => new PrivateInstallationDto
+            {
+                Id = i.Id,
+                Name = i.Name,
+                EnergyType = i.EnergyType,
+                Region = i.Region,
+                InstalledCapacityKW = i.InstalledCapacityKW,
+                AnnualProductionKWh = i.AnnualProductionKWh,
+                CommissioningDate =  i.CommissioningDate,
+                IntegrationType = i.IntegrationType,
+                PvCellType = i.PvCellType,
+                Azimuth = i.Azimuth,
+                RoofSlope =  i.RoofSlope,
+                Latitude = i.Latitude,
+                Longitude = i.Longitude,
+                LengthM = i.LengthM,
+                WidthM = i.WidthM,
+                AreaM2 = i.AreaM2,
+                EstimatedKWh =  i.EstimatedKWh,
+                LocationText =  i.LocationText
+            }).ToList();
+        }
+        
+        public async Task<PrivateInstallationDto?> GetByIdAsync(int id)
+        {
+            var installation = await _context.PrivateInstallations.FindAsync(id);
+    
+            if (installation == null)
+                return null;
+    
+            return new PrivateInstallationDto
+            {
+                Id = installation.Id,
+                Name = installation.Name,
+                EnergyType = installation.EnergyType,
+                Region = installation.Region,
+                InstalledCapacityKW = installation.InstalledCapacityKW,
+                AnnualProductionKWh = installation.AnnualProductionKWh,
+                CommissioningDate =  installation.CommissioningDate,
+                IntegrationType = installation.IntegrationType,
+                PvCellType = installation.PvCellType,
+                Azimuth = installation.Azimuth,
+                RoofSlope =  installation.RoofSlope,
+                Latitude = installation.Latitude,
+                Longitude = installation.Longitude,
+                LengthM = installation.LengthM,
+                WidthM = installation.WidthM,
+                AreaM2 = installation.AreaM2,
+                EstimatedKWh =  installation.EstimatedKWh,
+                LocationText =  installation.LocationText
+            };
+        }
+        
+        
     }
 }
