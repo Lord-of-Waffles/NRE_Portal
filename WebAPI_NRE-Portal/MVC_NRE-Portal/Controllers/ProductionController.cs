@@ -37,32 +37,7 @@ namespace MVC_NRE_Portal.Controllers
             };
 
             return View(vm);
-        }   
-
-        // Ancient code
-     /*   // Dashboard: bar chart comparing total production by energy type (kWh)
-        public async Task<IActionResult> Dashboard()
-        {
-            var data = await _productionService.GetFakeYearData();
-
-            var grouped = data
-                .GroupBy(d => d.EnergyType)
-                .Select(g => new { Type = g.Key, Total = g.Sum(x => x.ProductionKw) })
-                .OrderByDescending(x => x.Total)
-                .ToList();
-
-            var vm = new ChartViewModel
-            {
-                Labels = grouped.Select(x => x.Type).ToList(),
-                Data = grouped.Select(x => x.Total).ToList(),
-                ChartTitle = "Total Production by Energy Type (kWh)",
-                BackgroundColor = "rgba(75, 192, 192, 0.6)",
-                BorderColor = "rgba(75, 192, 192, 1)",
-                ChartId = "energyDashboardChart"
-            };
-
-            return View(vm);
-        }   */
+        }
 
         // One page per energy type (kWh)
         public async Task<IActionResult> PV() => await Energy("Photovoltaic", "Photovoltaic (PV) Production (kWh)");
