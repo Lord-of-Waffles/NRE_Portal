@@ -29,6 +29,11 @@ WORKDIR /app
 EXPOSE 8080
 EXPOSE 8081
 
+# Install curl for health checks (ADD THIS LINE HERE)
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y sqlite3
+
+
 # Copy published application
 COPY --from=publish /app/publish .
 
