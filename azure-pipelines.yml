@@ -1,63 +1,210 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger:
   branches:
     include:
-      - develop
-
-pr:
-  branches:
-    include:
+      - master
+      - ContaineriseApp
       - develop
 
 pool:
-  vmImage: 'windows-latest'
+  name: 'ben-run-pipeline'
 
 variables:
-  buildConfiguration: 'Release'
+  dockerRegistryServiceConnection: 'ACR-NREPortal'
+  containerRegistry: 'uasnreportalacr.azurecr.io'
+  tag: '$(Build.BuildId)'
+  resourceGroup: 'rg-uas-nre-portal'
+  location: 'uksouth'
+  acrUsername: 'uasnreportalacr'
 
-steps:
-  - task: UseDotNet@2
-    displayName: 'Use .NET 8 SDK'
-    inputs:
-      packageType: 'sdk'
-      version: '8.0.x'
+stages:
+  - stage: Build
+    displayName: 'Build and Push'
+    jobs:
+      - job: BuildAndPush
+        displayName: 'Build Images'
+        steps:
+          - task: Docker@2
+            displayName: 'Build API Image'
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: 'nre-portal-api'
+              command: 'build'
+              Dockerfile: 'WebAPI_NRE-Portal/WebAPI_NRE-Portal/Dockerfile'
+              buildContext: 'WebAPI_NRE-Portal'
+              tags: |
+                $(tag)
+                latest
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Restore solution'
-    inputs:
-      command: 'restore'
-      projects: '**/*.sln'
+          - task: Docker@2
+            displayName: 'Push API Image'
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: 'nre-portal-api'
+              command: 'push'
+              tags: |
+                $(tag)
+                latest
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Build solution'
-    inputs:
-      command: 'build'
-      projects: '**/*.sln'
-      arguments: '--configuration $(buildConfiguration)'
+          - task: Docker@2
+            displayName: 'Build MVC Image'
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: 'nre-portal-mvc'
+              command: 'build'
+              Dockerfile: 'WebAPI_NRE-Portal/MVC_NRE-Portal/Dockerfile'
+              buildContext: 'WebAPI_NRE-Portal'
+              tags: |
+                $(tag)
+                latest
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Run tests'
-    inputs:
-      command: 'test'
-      projects: '**/*Tests.csproj'
-      arguments: '--configuration $(buildConfiguration)'
-    continueOnError: true
+          - task: Docker@2
+            displayName: 'Push MVC Image'
+            inputs:
+              containerRegistry: '$(dockerRegistryServiceConnection)'
+              repository: 'nre-portal-mvc'
+              command: 'push'
+              tags: |
+                $(tag)
+                latest
 
-  - task: DotNetCoreCLI@2
-    displayName: 'Publish web projects'
-    inputs:
-      command: 'publish'
-      publishWebProjects: true
-      arguments: '--configuration $(buildConfiguration) --output $(Build.ArtifactStagingDirectory)'
-      zipAfterPublish: true
+  - stage: UnitTests
+    displayName: 'Run Unit Tests'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: RunDotNetTests
+        displayName: 'Execute All xUnit Tests'
+        pool:
+          vmImage: 'windows-latest'
+        steps:
+          - task: UseDotNet@2
+            displayName: 'Install .NET SDK'
+            inputs:
+              packageType: 'sdk'
+              version: '8.x'
 
-  - task: PublishBuildArtifacts@1
-    displayName: 'Publish artifact'
-    inputs:
-      PathtoPublish: '$(Build.ArtifactStagingDirectory)'
-      ArtifactName: 'drop'
-      publishLocation: 'Container'
+          - script: dotnet restore WebAPI_NRE-Portal/WebAPI_NRE-Portal.sln
+            displayName: 'Restore packages'
+
+          - powershell: |
+              Get-ChildItem -Recurse -Filter "*_Tests.csproj" | ForEach-Object {
+                Write-Host "Running tests for $($_.FullName)"
+                dotnet test $_.FullName --configuration Release --logger "trx;LogFileName=test_results.trx"
+              }
+            displayName: 'Run xUnit Tests'
+
+          - task: PublishTestResults@2
+            displayName: 'Publish Test Results'
+            inputs:
+              testResultsFormat: 'VSTest'
+              testResultsFiles: '**/test_results.trx'
+              failTaskOnFailedTests: true
+
+  - stage: Deploy
+    displayName: 'Deploy to Azure'
+    dependsOn: Build
+    condition: succeeded()
+    jobs:
+      - job: DeployContainers
+        displayName: 'Deploy Containers'
+        steps:
+          - task: PowerShell@2
+            displayName: 'Deploy API Container'
+            inputs:
+              targetType: 'inline'
+              errorActionPreference: 'continue'
+              script: |
+                Write-Host "Getting ACR credentials..."
+                $acrPass = az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv
+
+                Write-Host "Checking if API container exists..."
+                $exists = az container show --resource-group $(resourceGroup) --name nre-portal-api --query "id" -o tsv 2>&1
+
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Container exists, deleting old one..."
+                  az container delete --resource-group $(resourceGroup) --name nre-portal-api --yes
+                  Start-Sleep -Seconds 10
+                } else {
+                  Write-Host "Container doesn't exist yet, creating new one..."
+                }
+
+                Write-Host "Deploying new API container..."
+                az container create `
+                  --resource-group $(resourceGroup) `
+                  --name nre-portal-api `
+                  --image $(containerRegistry)/nre-portal-api:latest `
+                  --registry-login-server $(containerRegistry) `
+                  --registry-username $(acrUsername) `
+                  --registry-password $acrPass `
+                  --dns-name-label uas-nre-api `
+                  --ports 8080 `
+                  --os-type Linux `
+                  --cpu 1 --memory 1.5 `
+                  --location $(location) `
+                  --environment-variables `
+                    ASPNETCORE_ENVIRONMENT=Development `
+                    ASPNETCORE_URLS=http://+:8080
+
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "API container deployed successfully!"
+                } else {
+                  Write-Host "API deployment failed!"
+                  exit 1
+                }
+
+          - task: PowerShell@2
+            displayName: 'Deploy MVC Container'
+            inputs:
+              targetType: 'inline'
+              errorActionPreference: 'continue'
+              script: |
+                Write-Host "Getting ACR credentials..."
+                $acrPass = az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv
+
+                Write-Host "Getting API URL..."
+                $apiUrl = az container show --resource-group $(resourceGroup) --name nre-portal-api --query ipAddress.fqdn -o tsv
+                Write-Host "API URL: http://$apiUrl:8080"
+
+                Write-Host "Checking if MVC container exists..."
+                $exists = az container show --resource-group $(resourceGroup) --name nre-portal-mvc --query "id" -o tsv 2>&1
+
+                if ($LASTEXITCODE -eq 0) {
+                  Write-Host "Container exists, deleting old one..."
+                  az container delete --resource-group $(resourceGroup) --name nre-portal-mvc --yes
+                  Start-Sleep -Seconds 10
+                } else {
+                  Write-Host "Container doesn't exist yet, creating new one..."
+                }
+
+                Write-Host "Deploying new MVC container..."
+                az container create `
+                  --resource-group $(resourceGroup) `
+                  --name nre-portal-mvc `
+                  --image $(containerRegistry)/nre-portal-mvc:latest `
+                  --registry-login-server $(containerRegistry) `
+                  --registry-username $(acrUsername) `
+                  --registry-password $acrPass `
+                  --dns-name-label uas-nre-mvc `
+                  --ports 8080 `
+                  --os-type Linux `
+                  --cpu 1 --memory 1.5 `
+                  --location $(location) `
+                  --environment-variables `
+                    ASPNETCORE_ENVIRONMENT=Development `
+                    ASPNETCORE_URLS=http://+:8080 `
+                    ApiBaseUrl=http://${apiUrl}:8080
+
+                if ($LASTEXITCODE -eq 0) {
+                  $mvcUrl = az container show --resource-group $(resourceGroup) --name nre-portal-mvc --query ipAddress.fqdn -o tsv
+
+                  Write-Host ""
+                  Write-Host "========================================="
+                  Write-Host "Deployment Complete!"
+                  Write-Host "========================================="
+                  Write-Host "API: http://$apiUrl:8080/swagger"
+                  Write-Host "MVC: http://$mvcUrl:8080"
+                  Write-Host "========================================="
+                } else {
+                  Write-Host "MVC deployment failed!"
+                  exit 1
+                }

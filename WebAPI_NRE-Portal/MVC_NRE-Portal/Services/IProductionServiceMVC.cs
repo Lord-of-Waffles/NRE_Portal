@@ -4,6 +4,6 @@ namespace MVC_NRE_Portal.Services
 {
     public interface IProductionServiceMVC
     {
-        public Task<List<ProductionDataDto>> GetFakeYearData();
+        public Task<List<ProductionDataDto>> GetProductionSummary();
     }
 }

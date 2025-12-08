@@ -1,4 +1,4 @@
-﻿namespace MVC_NRE_Portal.Models
+﻿namespace WebAPI_NRE_Portal.Models
 {
     public class ProductionDataDto
     {

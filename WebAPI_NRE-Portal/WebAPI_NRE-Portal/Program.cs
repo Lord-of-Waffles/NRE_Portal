@@ -1,5 +1,7 @@
-
+using DataLayer_NRE_Portal.Data;
+using Microsoft.EntityFrameworkCore;
 using WebAPI_NRE_Portal.Services;
+using WebAPI_NRE_Portal.Data;
 
 namespace WebAPI_NRE_Portal
 {
@@ -9,32 +11,55 @@ namespace WebAPI_NRE_Portal
         {
             var builder = WebApplication.CreateBuilder(args);
 
-            // Add services to the container.
+            builder.Services.AddDbContext<NrePortalContext>(options =>
+                options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
             builder.Services.AddControllers();
-            // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
 
             builder.Services.AddScoped<IProductionService, ProductionService>();
+            builder.Services.AddScoped<IPrivateInstallationService, PrivateInstallationService>();
 
+            // CORS configuration
+            const string CorsPolicy = "AllowLocal";
+            builder.Services.AddCors(o =>
+            {
+                o.AddPolicy(CorsPolicy, p =>
+                    p.WithOrigins(
+                        "https://localhost:7288",
+                        "http://localhost:5172",
+                        "http://localhost:5002",
+                        "https://localhost:5001",
+                        "http://mvc:8080",
+                        "http://localhost:5002",
+                        "http://uas-nre-mvc.uksouth.azurecontainer.io:8080",
+                        "http://uas-nre-mvc.uksouth.azurecontainer.io"
+                    )
+                     .AllowAnyHeader()
+                     .AllowAnyMethod());
+            });
 
             var app = builder.Build();
 
-            // Configure the HTTP request pipeline.
-            if (app.Environment.IsDevelopment())
+            // seed
+            using (var scope = app.Services.CreateScope())
             {
-                app.UseSwagger();
-                app.UseSwaggerUI();
+                var ctx = scope.ServiceProvider.GetRequiredService<NrePortalContext>();
+                ctx.Database.Migrate();
+                DbSeeder.Seed(ctx);
             }
 
-            app.UseHttpsRedirection();
+            // Always enable Swagger for debugging in Azure
+            app.UseSwagger();
+            app.UseSwaggerUI();
 
+            // DON'T redirect to HTTPS in containers without certificates
+            // app.UseHttpsRedirection();
+            
+            app.UseCors(CorsPolicy);
             app.UseAuthorization();
-
-
             app.MapControllers();
-
             app.Run();
         }
     }

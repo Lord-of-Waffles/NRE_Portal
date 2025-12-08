@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using MVC_NRE_Portal.Models;
 using MVC_NRE_Portal.Services;
 using System.Linq;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace MVC_NRE_Portal.Controllers
@@ -15,10 +16,9 @@ namespace MVC_NRE_Portal.Controllers
             _productionService = productionService;
         }
 
-        // Dashboard: bar chart comparing total production by energy type (kWh)
         public async Task<IActionResult> Dashboard()
         {
-            var data = await _productionService.GetFakeYearData();
+            var data = await _productionService.GetProductionSummary();
 
             var grouped = data
                 .GroupBy(d => d.EnergyType)
@@ -40,14 +40,14 @@ namespace MVC_NRE_Portal.Controllers
         }
 
         // One page per energy type (kWh)
-        public async Task<IActionResult> PV() => await Energy("PV", "Photovoltaic (PV) Production (kWh)");
-        public async Task<IActionResult> MiniHydro() => await Energy("Mini-Hydraulic", "Mini-Hydraulic Production (kWh)");
-        public async Task<IActionResult> Wind() => await Energy("Windturbine", "Windturbine Production (kWh)");
+        public async Task<IActionResult> PV() => await Energy("Photovoltaic", "Photovoltaic (PV) Production (kWh)");
+        public async Task<IActionResult> MiniHydro() => await Energy("Hydroelectric power", "Mini-Hydraulic Production (kWh)");
+        public async Task<IActionResult> Wind() => await Energy("Wind energy", "Windturbine Production (kWh)");
         public async Task<IActionResult> Biogas() => await Energy("Biogas", "Biogas Production (kWh)");
 
         private async Task<IActionResult> Energy(string energyType, string title)
         {
-            var data = await _productionService.GetFakeYearData();
+            var data = await _productionService.GetProductionSummary();
 
             var series = data
                 .Where(d => d.EnergyType == energyType)
