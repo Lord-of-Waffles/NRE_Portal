@@ -11,10 +11,10 @@ namespace DataLayer_NRE_Portal.Data
         // Parameterless ctor for design-time fallback
         public NrePortalContext() { }
 
-        public DbSet<ProductionData> ProductionSummaries { get; set; } = null!;
-        public DbSet<InstallationBase> Installations => Set<InstallationBase>();
-        public DbSet<PublicInstallation> PublicInstallations => Set<PublicInstallation>();
-        public DbSet<PrivateInstallation> PrivateInstallations => Set<PrivateInstallation>();
+        public virtual DbSet<ProductionData> ProductionSummaries { get; set; } = null!;
+        public virtual DbSet<InstallationBase> Installations => Set<InstallationBase>();
+        public virtual DbSet<PublicInstallation> PublicInstallations => Set<PublicInstallation>();
+        public virtual DbSet<PrivateInstallation> PrivateInstallations => Set<PrivateInstallation>();
 
         protected override void OnConfiguring(DbContextOptionsBuilder optionsBuilder)
         {
