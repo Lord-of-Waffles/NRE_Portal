@@ -1,4 +1,4 @@
-# This is a basic workflow that is manually triggered
+# This workflow assigns two labels to newly created issues
 
 name: DTS Assign Labels
 
@@ -22,4 +22,4 @@ jobs:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
           GH_REPO: ${{github.repository}}
           NUMBER: ${{github.event.issue.number}}
-          LABELS: new request
+          LABELS: new request, check for duplicate
