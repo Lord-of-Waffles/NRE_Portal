@@ -13,7 +13,7 @@ on:
 jobs:
   dts_assign_labels:
     runs-on: ubuntu-latest
-    if: github.event.label.name == "Duplicate Request"
+    if: github.event.label.name == 'Duplicate Request'
     permissions:
       issues: write
     steps:
