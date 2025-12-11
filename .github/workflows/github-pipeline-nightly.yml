@@ -1,0 +1,49 @@
+name: Nightly Build Docker Images
+
+# Trigger: run nightly and optionally manually
+on:
+  schedule:
+    - cron: "0 22 * * *" # Every day at 22:00 UTC
+  workflow_dispatch: # Allows manual trigger
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      CONTAINER_REGISTRY: uasnreportalacr.azurecr.io
+      TAG: ${{ github.run_number }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+
+    steps:
+      # 1️⃣ Checkout code
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Login to ACR
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ env.ACR_USERNAME }}
+          password: ${{ env.ACR_PASSWORD }}
+
+      # 3️⃣ Build and push API image
+      - name: Build API Docker image
+        run: |
+          docker build -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:${{ env.TAG }} -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:latest -f WebAPI_NRE-Portal/WebAPI_NRE-Portal/Dockerfile WebAPI_NRE-Portal
+
+      - name: Push API Docker image
+        run: |
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:${{ env.TAG }}
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:latest
+
+      # 4️⃣ Build and push MVC image
+      - name: Build MVC Docker image
+        run: |
+          docker build -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:${{ env.TAG }} -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:latest -f WebAPI_NRE-Portal/MVC_NRE-Portal/Dockerfile WebAPI_NRE-Portal
+
+      - name: Push MVC Docker image
+        run: |
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:${{ env.TAG }}
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:latest
