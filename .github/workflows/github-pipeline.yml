@@ -1,0 +1,138 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [master, ContaineriseApp, develop]
+  pull_request:
+    branches: [master, ContaineriseApp, develop]
+
+env:
+  containerRegistry: uasnreportalacr.azurecr.io
+  tag: ${{ github.run_number }}
+  resourceGroup: rg-uas-nre-portal
+  location: uksouth
+  acrUsername: uasnreportalacr
+
+jobs:
+  build:
+    name: Build and Push Docker Images
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Login to Azure Container Registry
+        uses: azure/docker-login@v1
+        with:
+          login-server: ${{ env.containerRegistry }}
+          username: ${{ env.acrUsername }}
+          password: ${{ secrets.ACR_NREPortal }} # you need to store your ACR password as a GitHub secret
+
+      - name: Build API Docker image
+        run: |
+          docker build -t ${{ env.containerRegistry }}/nre-portal-api:${{ env.tag }} -t ${{ env.containerRegistry }}/nre-portal-api:latest -f WebAPI_NRE-Portal/WebAPI_NRE-Portal/Dockerfile WebAPI_NRE-Portal
+
+      - name: Push API Docker image
+        run: |
+          docker push ${{ env.containerRegistry }}/nre-portal-api:${{ env.tag }}
+          docker push ${{ env.containerRegistry }}/nre-portal-api:latest
+
+      - name: Build MVC Docker image
+        run: |
+          docker build -t ${{ env.containerRegistry }}/nre-portal-mvc:${{ env.tag }} -t ${{ env.containerRegistry }}/nre-portal-mvc:latest -f WebAPI_NRE-Portal/MVC_NRE-Portal/Dockerfile WebAPI_NRE-Portal
+
+      - name: Push MVC Docker image
+        run: |
+          docker push ${{ env.containerRegistry }}/nre-portal-mvc:${{ env.tag }}
+          docker push ${{ env.containerRegistry }}/nre-portal-mvc:latest
+
+  unit_tests:
+    name: Run Unit Tests
+    runs-on: windows-latest
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v3
+        with:
+          dotnet-version: "8.x"
+
+      - name: Restore solution
+        run: dotnet restore WebAPI_NRE-Portal/WebAPI_NRE-Portal.sln
+
+      - name: Run all xUnit tests
+        shell: pwsh
+        run: |
+          Get-ChildItem -Recurse -Filter "*_Tests.csproj" | ForEach-Object {
+            Write-Host "Running tests for $($_.FullName)"
+            dotnet test $_.FullName --configuration Release --logger "trx;LogFileName=test_results.trx"
+          }
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-results
+          path: "**/test_results.trx"
+
+  deploy:
+    name: Deploy Containers to Azure
+    runs-on: ubuntu-latest
+    needs: build
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }} # Service principal JSON stored as GitHub secret
+
+      - name: Deploy API container
+        run: |
+          acr_pass=$(az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv)
+          api_exists=$(az container show --resource-group ${{ env.resourceGroup }} --name nre-portal-api --query "id" -o tsv 2>&1 || echo "")
+          if [ -n "$api_exists" ]; then
+            az container delete --resource-group ${{ env.resourceGroup }} --name nre-portal-api --yes
+            sleep 10
+          fi
+          az container create \
+            --resource-group ${{ env.resourceGroup }} \
+            --name nre-portal-api \
+            --image ${{ env.containerRegistry }}/nre-portal-api:latest \
+            --registry-login-server ${{ env.containerRegistry }} \
+            --registry-username ${{ env.acrUsername }} \
+            --registry-password $acr_pass \
+            --dns-name-label uas-nre-api \
+            --ports 8080 \
+            --os-type Linux \
+            --cpu 1 --memory 1.5 \
+            --location ${{ env.location }} \
+            --environment-variables ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8080
+
+      - name: Deploy MVC container
+        run: |
+          acr_pass=$(az acr credential show --name uasnreportalacr --query "passwords[0].value" -o tsv)
+          api_url=$(az container show --resource-group ${{ env.resourceGroup }} --name nre-portal-api --query ipAddress.fqdn -o tsv)
+          mvc_exists=$(az container show --resource-group ${{ env.resourceGroup }} --name nre-portal-mvc --query "id" -o tsv 2>&1 || echo "")
+          if [ -n "$mvc_exists" ]; then
+            az container delete --resource-group ${{ env.resourceGroup }} --name nre-portal-mvc --yes
+            sleep 10
+          fi
+          az container create \
+            --resource-group ${{ env.resourceGroup }} \
+            --name nre-portal-mvc \
+            --image ${{ env.containerRegistry }}/nre-portal-mvc:latest \
+            --registry-login-server ${{ env.containerRegistry }} \
+            --registry-username ${{ env.acrUsername }} \
+            --registry-password $acr_pass \
+            --dns-name-label uas-nre-mvc \
+            --ports 8080 \
+            --os-type Linux \
+            --cpu 1 --memory 1.5 \
+            --location ${{ env.location }} \
+            --environment-variables ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8080 ApiBaseUrl=http://${api_url}:8080
