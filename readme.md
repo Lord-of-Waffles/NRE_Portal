@@ -14,11 +14,8 @@ public class BarChartViewComponent - Reusable barchart UI component
 
 ProductionController.cs - Get raw data & transform it
 
-# Models 
+# Models
+
 ProductionServiceMVC.cs - Contains Hugo's old code, currently using fake data to test
 
-
-
-
-
-
+test
