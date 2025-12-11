@@ -1,0 +1,112 @@
+name: Milestone Build Docker Images
+
+on:
+  workflow_dispatch:
+    inputs:
+      imageTag:
+        description: "Docker image tag"
+        required: false
+        default: "milestone-1.0.0"
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    env:
+      CONTAINER_REGISTRY: uasnreportalacr.azurecr.io
+      TAG: ${{ github.event.inputs.imageTag }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      RESOURCE_GROUP: rg-uas-nre-portal
+      LOCATION: uksouth
+
+    steps:
+      # 1️⃣ Checkout repository
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Login to ACR
+      - name: Login to Azure Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ${{ env.CONTAINER_REGISTRY }}
+          username: ${{ env.ACR_USERNAME }}
+          password: ${{ env.ACR_PASSWORD }}
+
+      # 3️⃣ Build and push API image
+      - name: Build API Docker image
+        run: |
+          docker build -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:${{ env.TAG }} -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:latest -f WebAPI_NRE-Portal/WebAPI_NRE-Portal/Dockerfile WebAPI_NRE-Portal
+
+      - name: Push API Docker image
+        run: |
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:${{ env.TAG }}
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:latest
+
+      # 4️⃣ Build and push MVC image
+      - name: Build MVC Docker image
+        run: |
+          docker build -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:${{ env.TAG }} -t ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:latest -f WebAPI_NRE-Portal/MVC_NRE-Portal/Dockerfile WebAPI_NRE-Portal
+
+      - name: Push MVC Docker image
+        run: |
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:${{ env.TAG }}
+          docker push ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:latest
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: build-and-push
+    env:
+      CONTAINER_REGISTRY: uasnreportalacr.azurecr.io
+      TAG: ${{ github.event.inputs.imageTag }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      RESOURCE_GROUP: rg-uas-nre-portal
+      LOCATION: uksouth
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 5️⃣ Login to Azure (deploy)
+      - name: Login to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+
+      # 6️⃣ Deploy API container
+      - name: Deploy API container
+        run: |
+          az acr login --name uasnreportalacr
+          az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name nre-portal-api --yes || echo "Container does not exist"
+          az container create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name nre-portal-api \
+            --image ${{ env.CONTAINER_REGISTRY }}/nre-portal-api:${{ env.TAG }} \
+            --registry-login-server ${{ env.CONTAINER_REGISTRY }} \
+            --registry-username ${{ env.ACR_USERNAME }} \
+            --registry-password ${{ secrets.ACR_PASSWORD }} \
+            --dns-name-label uas-nre-api \
+            --ports 8080 \
+            --os-type Linux \
+            --cpu 1 --memory 1.5 \
+            --location ${{ env.LOCATION }} \
+            --environment-variables ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8080
+
+      # 7️⃣ Deploy MVC container
+      - name: Deploy MVC container
+        run: |
+          apiUrl=$(az container show --resource-group ${{ env.RESOURCE_GROUP }} --name nre-portal-api --query ipAddress.fqdn -o tsv)
+          echo "API URL: http://$apiUrl:8080"
+          az container delete --resource-group ${{ env.RESOURCE_GROUP }} --name nre-portal-mvc --yes || echo "Container does not exist"
+          az container create \
+            --resource-group ${{ env.RESOURCE_GROUP }} \
+            --name nre-portal-mvc \
+            --image ${{ env.CONTAINER_REGISTRY }}/nre-portal-mvc:${{ env.TAG }} \
+            --registry-login-server ${{ env.CONTAINER_REGISTRY }} \
+            --registry-username ${{ env.ACR_USERNAME }} \
+            --registry-password ${{ secrets.ACR_PASSWORD }} \
+            --dns-name-label uas-nre-mvc \
+            --ports 8080 \
+            --os-type Linux \
+            --cpu 1 --memory 1.5 \
+            --location ${{ env.LOCATION }} \
+            --environment-variables ASPNETCORE_ENVIRONMENT=Development ASPNETCORE_URLS=http://+:8080 ApiBaseUrl=http://${apiUrl}:8080
