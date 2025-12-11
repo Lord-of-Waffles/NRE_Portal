@@ -22,4 +22,4 @@ jobs:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
           GH_REPO: ${{github.repository}}
           NUMBER: ${{github.event.issue.number}}
-          LABELS: new request, check for duplicate
+          LABELS: new request,check for duplicate
