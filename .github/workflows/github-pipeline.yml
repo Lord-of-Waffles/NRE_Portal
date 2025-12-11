@@ -2,9 +2,9 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [master, ContaineriseApp, develop]
+    branches: [main, ContaineriseApp, develop]
   pull_request:
-    branches: [master, ContaineriseApp, develop]
+    branches: [main, ContaineriseApp, develop]
 
 env:
   containerRegistry: uasnreportalacr.azurecr.io
