@@ -1,0 +1,36 @@
+# This workflow assigns two labels to newly created issues
+
+name: DTS Close Duplicate Requests
+
+# Controls when the action will run. Workflow runs when manually triggered using the UI
+# or API.
+on:
+ issues:
+   types:
+    - labeled
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  dts_assign_labels:
+    runs-on: ubuntu-latest
+    if: github.event.label.name == 'duplicate request'
+    permissions:
+      issues: write
+    steps:
+      - run: gh issue edit "$NUMBER" --remove-label "$LABELS"
+        env:
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GH_REPO: ${{github.repository}}
+          NUMBER: ${{github.event.issue.number}}
+          LABELS: new request,check for duplicate
+      - run: gh issue edit "$NUMBER" --add-label "$LABELS"
+        env:
+          GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
+          GH_REPO: ${{github.repository}}
+          NUMBER: ${{github.event.issue.number}}
+          LABELS: closed
+      - run: gh issue close "$NUMBER" --reason "completed"
+        env:
+         GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         GH_REPO: ${{ github.repository }}
+         NUMBER: ${{ github.event.issue.number }}
