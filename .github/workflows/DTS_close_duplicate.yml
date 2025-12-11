@@ -6,13 +6,14 @@ name: DTS Close Duplicate Requests
 # or API.
 on:
  issues:
-   labeled:
-     - Duplicate Request
+   types:
+    - labeled
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
   dts_assign_labels:
     runs-on: ubuntu-latest
+    if: github.event.label.name == "Duplicate Request"
     permissions:
       issues: write
     steps:
