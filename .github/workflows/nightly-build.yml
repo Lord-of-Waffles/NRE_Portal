@@ -1,1 +1,92 @@
+name: Nightly Build and Test
 
+on:
+  schedule:
+    - cron: '0 2 * * *'  # Runs at 2 AM UTC every night
+  workflow_dispatch:  # Also allow manual trigger
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build:
+    name: Build and Push Images
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set lowercase repository owner
+        id: repo
+        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+      
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      
+      - name: Build and Push API Image
+        uses: docker/build-push-action@v5
+        with:
+          context: WebAPI_NRE-Portal
+          file: WebAPI_NRE-Portal/WebAPI_NRE-Portal/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-api:${{ github.run_number }}
+            ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-api:latest
+            ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-api:nightly
+      
+      - name: Build and Push MVC Image
+        uses: docker/build-push-action@v5
+        with:
+          context: WebAPI_NRE-Portal
+          file: WebAPI_NRE-Portal/MVC_NRE-Portal/Dockerfile
+          push: true
+          tags: |
+            ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-mvc:${{ github.run_number }}
+            ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-mvc:latest
+            ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-mvc:nightly
+
+  test:
+    name: Run Unit Tests
+    needs: build
+    runs-on: windows-latest
+    permissions:
+      contents: read
+      checks: write
+      pull-requests: write
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.x'
+      
+      - name: Restore packages
+        run: dotnet restore WebAPI_NRE-Portal/WebAPI_NRE-Portal.sln
+      
+      - name: Run xUnit Tests
+        run: |
+          Get-ChildItem -Recurse -Filter "*_Tests.csproj" | ForEach-Object {
+            Write-Host "Running tests for $($_.FullName)"
+            dotnet test $_.FullName --configuration Release --logger "trx;LogFileName=test_results.trx"
+          }
+        shell: pwsh
+      
+      - name: Publish Test Results
+        uses: dorny/test-reporter@v1
+        if: always()
+        with:
+          name: Nightly Test Results
+          path: '**/test_results.trx'
+          reporter: dotnet-trx
+          fail-on-error: true
