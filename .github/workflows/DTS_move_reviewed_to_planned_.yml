@@ -1,6 +1,6 @@
 # This workflow assigns two labels to newly created issues
 
-name: DTS Move Unique Request to Review
+name: DTS Move Reviewed Request to Being Implemented
 
 # Controls when the action will run. Workflow runs when manually triggered using the UI
 # or API.
@@ -22,7 +22,7 @@ jobs:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
           GH_REPO: ${{github.repository}}
           NUMBER: ${{github.event.issue.number}}
-          LABELS: in review,reviewed
+          LABELS: in review,reviewed,unique request
       - run: gh issue edit "$NUMBER" --add-label "$LABELS"
         env:
           GH_TOKEN: ${{secrets.GITHUB_TOKEN}}
