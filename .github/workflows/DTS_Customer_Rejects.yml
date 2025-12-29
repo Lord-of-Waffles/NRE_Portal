@@ -13,7 +13,7 @@ on:
 jobs:
   dts_assign_labels:
     runs-on: ubuntu-latest
-    if: github.event.label.name == 'duplicate request'
+    if: github.event.label.name == 'not accepted by customer'
     permissions:
       issues: write
     steps:
