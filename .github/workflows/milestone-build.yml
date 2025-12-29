@@ -145,6 +145,9 @@ jobs:
       
       - name: Deploy MVC to Cloud Run
         run: |
+          # Use the API_URL from the previous step
+          echo "Using API URL: ${{ env.API_URL }}"
+          
           gcloud run deploy nre-portal-mvc \
             --image ${{ env.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/nre-portal/nre-portal-mvc:latest \
             --platform managed \
