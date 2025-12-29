@@ -1,11 +1,12 @@
 name: Milestone (Build, Test, Deploy to GCP)
 
 on:
-  workflow_dispatch:  # manual trigger only
+  workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
   GCP_REGION: us-central1
+  GCP_ARTIFACT_REGISTRY: us-central1-docker.pkg.dev
 
 jobs:
   build:
@@ -23,6 +24,17 @@ jobs:
         id: repo
         run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
       
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+      
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+      
+      - name: Configure Docker for Artifact Registry
+        run: gcloud auth configure-docker ${{ env.GCP_REGION }}-docker.pkg.dev
+      
       - name: Log in to GitHub Container Registry
         uses: docker/login-action@v3
         with:
@@ -39,6 +51,8 @@ jobs:
           tags: |
             ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-api:${{ github.run_number }}
             ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-api:latest
+            ${{ env.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/nre-portal/nre-portal-api:${{ github.run_number }}
+            ${{ env.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/nre-portal/nre-portal-api:latest
       
       - name: Build and Push MVC Image
         uses: docker/build-push-action@v5
@@ -49,6 +63,8 @@ jobs:
           tags: |
             ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-mvc:${{ github.run_number }}
             ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-mvc:latest
+            ${{ env.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/nre-portal/nre-portal-mvc:${{ github.run_number }}
+            ${{ env.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/nre-portal/nre-portal-mvc:latest
 
   test:
     name: Run Unit Tests
@@ -97,10 +113,6 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
       
-      - name: Set lowercase repository owner
-        id: repo
-        run: echo "owner=$(echo ${{ github.repository_owner }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
-      
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
@@ -109,14 +121,10 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
       
-      - name: Configure Docker for GHCR
-        run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-      
       - name: Deploy API to Cloud Run
         run: |
           gcloud run deploy nre-portal-api \
-            --image ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-api:latest \
+            --image ${{ env.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/nre-portal/nre-portal-api:latest \
             --platform managed \
             --region ${{ env.GCP_REGION }} \
             --allow-unauthenticated \
@@ -138,7 +146,7 @@ jobs:
       - name: Deploy MVC to Cloud Run
         run: |
           gcloud run deploy nre-portal-mvc \
-            --image ghcr.io/${{ steps.repo.outputs.owner }}/nre-portal-mvc:latest \
+            --image ${{ env.GCP_ARTIFACT_REGISTRY }}/${{ secrets.GCP_PROJECT_ID }}/nre-portal/nre-portal-mvc:latest \
             --platform managed \
             --region ${{ env.GCP_REGION }} \
             --allow-unauthenticated \
