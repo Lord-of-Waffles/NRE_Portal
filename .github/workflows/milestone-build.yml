@@ -156,7 +156,7 @@ jobs:
             --port 8080 \
             --memory 1Gi \
             --cpu 1 \
-            --set-env-vars ASPNETCORE_ENVIRONMENT=Development,ASPNETCORE_URLS=http://+:8080,ApiBaseUrl=${{ env.API_URL }} \
+            --set-env-vars ASPNETCORE_ENVIRONMENT=Development,ASPNETCORE_URLS=http://+:8080,WebAPI__BaseUrl=${{ env.API_URL }}/api \
             --project ${{ secrets.GCP_PROJECT_ID }}
           
           MVC_URL=$(gcloud run services describe nre-portal-mvc \
